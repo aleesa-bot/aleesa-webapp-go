@@ -1,0 +1,6 @@
+.idea/**
+.vscode/**
+.vstags
+data/config.json
+data/cache_db/**
+aleesa-webapp-go
