@@ -187,7 +187,9 @@ type Iterator struct {
 	comparer  base.Comparer
 	iter      internalIterator
 	pointIter internalIterator
+	// Either readState or version is set, but not both.
 	readState *readState
+	version   *version
 	// rangeKey holds iteration state specific to iteration over range keys.
 	// The range key field may be nil if the Iterator has never been configured
 	// to iterate over range keys. Its non-nilness cannot be used to determine
@@ -569,6 +571,9 @@ func (i *Iterator) findNextEntry(limit []byte) {
 			return
 
 		case InternalKeyKindDelete, InternalKeyKindSingleDelete, InternalKeyKindDeleteSized:
+			// NB: treating InternalKeyKindSingleDelete as equivalent to DEL is not
+			// only simpler, but is also necessary for correctness due to
+			// InternalKeyKindSSTableInternalObsoleteBit.
 			i.nextUserKey()
 			continue
 
@@ -632,6 +637,9 @@ func (i *Iterator) nextPointCurrentUserKey() bool {
 		return false
 
 	case InternalKeyKindDelete, InternalKeyKindSingleDelete, InternalKeyKindDeleteSized:
+		// NB: treating InternalKeyKindSingleDelete as equivalent to DEL is not
+		// only simpler, but is also necessary for correctness due to
+		// InternalKeyKindSSTableInternalObsoleteBit.
 		return false
 
 	case InternalKeyKindSet, InternalKeyKindSetWithDelete:
@@ -1095,6 +1103,10 @@ func (i *Iterator) mergeNext(key InternalKey, valueMerger ValueMerger) {
 		case InternalKeyKindDelete, InternalKeyKindSingleDelete, InternalKeyKindDeleteSized:
 			// We've hit a deletion tombstone. Return everything up to this
 			// point.
+			//
+			// NB: treating InternalKeyKindSingleDelete as equivalent to DEL is not
+			// only simpler, but is also necessary for correctness due to
+			// InternalKeyKindSSTableInternalObsoleteBit.
 			return
 
 		case InternalKeyKindSet, InternalKeyKindSetWithDelete:
@@ -1750,7 +1762,8 @@ func (i *Iterator) internalNextPrefix(currKeyPrefixLen int) {
 	i.iterKey, i.iterValue = i.iter.NextPrefix(i.prefixOrFullSeekKey)
 	if invariants.Enabled && i.iterKey != nil {
 		if iterKeyPrefixLen := i.split(i.iterKey.UserKey); i.cmp(i.iterKey.UserKey[:iterKeyPrefixLen], i.prefixOrFullSeekKey) < 0 {
-			panic("pebble: iter.NextPrefix did not advance beyond the current prefix")
+			panic(errors.AssertionFailedf("pebble: iter.NextPrefix did not advance beyond the current prefix: now at %q; expected to be geq %q",
+				i.iterKey, i.prefixOrFullSeekKey))
 		}
 	}
 }
@@ -2214,6 +2227,10 @@ func (i *Iterator) Close() error {
 		i.readState = nil
 	}
 
+	if i.version != nil {
+		i.version.Unref()
+	}
+
 	for _, readers := range i.externalReaders {
 		for _, r := range readers {
 			err = firstError(err, r.Close())
@@ -2645,11 +2662,22 @@ func (i *Iterator) CloneWithContext(ctx context.Context, opts CloneOptions) (*It
 	}
 
 	readState := i.readState
-	if readState == nil {
+	vers := i.version
+	if readState == nil && vers == nil {
 		return nil, errors.Errorf("cannot Clone a closed Iterator")
 	}
 	// i is already holding a ref, so there is no race with unref here.
-	readState.ref()
+	//
+	// TODO(bilal): If the underlying iterator was created on a snapshot, we could
+	// grab a reference to the current readState instead of reffing the original
+	// readState. This allows us to release references to some zombie sstables
+	// and memtables.
+	if readState != nil {
+		readState.ref()
+	}
+	if vers != nil {
+		vers.Ref()
+	}
 	// Bundle various structures under a single umbrella in order to allocate
 	// them together.
 	buf := iterAllocPool.Get().(*iterAlloc)
@@ -2661,6 +2689,7 @@ func (i *Iterator) CloneWithContext(ctx context.Context, opts CloneOptions) (*It
 		merge:               i.merge,
 		comparer:            i.comparer,
 		readState:           readState,
+		version:             vers,
 		keyBuf:              buf.keyBuf,
 		prefixOrFullSeekKey: buf.prefixOrFullSeekKey,
 		boundsBuf:           buf.boundsBuf,
@@ -2715,19 +2744,19 @@ func (stats *IteratorStats) SafeFormat(s redact.SafePrinter, verb rune) {
 		s.SafeString(",\n(internal-stats: ")
 		s.Printf("(block-bytes: (total %s, cached %s, read-time %s)), "+
 			"(points: (count %s, key-bytes %s, value-bytes %s, tombstoned %s))",
-			humanize.IEC.Uint64(stats.InternalStats.BlockBytes),
-			humanize.IEC.Uint64(stats.InternalStats.BlockBytesInCache),
+			humanize.Bytes.Uint64(stats.InternalStats.BlockBytes),
+			humanize.Bytes.Uint64(stats.InternalStats.BlockBytesInCache),
 			humanize.FormattedString(stats.InternalStats.BlockReadDuration.String()),
-			humanize.SI.Uint64(stats.InternalStats.PointCount),
-			humanize.SI.Uint64(stats.InternalStats.KeyBytes),
-			humanize.SI.Uint64(stats.InternalStats.ValueBytes),
-			humanize.SI.Uint64(stats.InternalStats.PointsCoveredByRangeTombstones),
+			humanize.Count.Uint64(stats.InternalStats.PointCount),
+			humanize.Bytes.Uint64(stats.InternalStats.KeyBytes),
+			humanize.Bytes.Uint64(stats.InternalStats.ValueBytes),
+			humanize.Count.Uint64(stats.InternalStats.PointsCoveredByRangeTombstones),
 		)
 		if stats.InternalStats.SeparatedPointValue.Count != 0 {
 			s.Printf(", (separated: (count %s, bytes %s, fetched %s)))",
-				humanize.SI.Uint64(stats.InternalStats.SeparatedPointValue.Count),
-				humanize.IEC.Uint64(stats.InternalStats.SeparatedPointValue.ValueBytes),
-				humanize.IEC.Uint64(stats.InternalStats.SeparatedPointValue.ValueBytesFetched))
+				humanize.Count.Uint64(stats.InternalStats.SeparatedPointValue.Count),
+				humanize.Bytes.Uint64(stats.InternalStats.SeparatedPointValue.ValueBytes),
+				humanize.Bytes.Uint64(stats.InternalStats.SeparatedPointValue.ValueBytesFetched))
 		} else {
 			s.Printf(")")
 		}

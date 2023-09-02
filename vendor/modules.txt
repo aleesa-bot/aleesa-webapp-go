@@ -1,5 +1,5 @@
-# github.com/DataDog/zstd v1.4.5
-## explicit
+# github.com/DataDog/zstd v1.5.5
+## explicit; go 1.14
 github.com/DataDog/zstd
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
@@ -10,8 +10,8 @@ github.com/briandowns/openweathermap
 # github.com/cespare/xxhash/v2 v2.2.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cockroachdb/errors v1.9.1
-## explicit; go 1.13
+# github.com/cockroachdb/errors v1.11.1
+## explicit; go 1.19
 github.com/cockroachdb/errors
 github.com/cockroachdb/errors/assert
 github.com/cockroachdb/errors/barriers
@@ -22,6 +22,7 @@ github.com/cockroachdb/errors/errorspb
 github.com/cockroachdb/errors/errutil
 github.com/cockroachdb/errors/hintdetail
 github.com/cockroachdb/errors/issuelink
+github.com/cockroachdb/errors/join
 github.com/cockroachdb/errors/markers
 github.com/cockroachdb/errors/oserror
 github.com/cockroachdb/errors/report
@@ -30,10 +31,10 @@ github.com/cockroachdb/errors/secondary
 github.com/cockroachdb/errors/stdstrings
 github.com/cockroachdb/errors/telemetrykeys
 github.com/cockroachdb/errors/withstack
-# github.com/cockroachdb/logtags v0.0.0-20211118104740-dabe8e521a4f
+# github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b
 ## explicit; go 1.16
 github.com/cockroachdb/logtags
-# github.com/cockroachdb/pebble v0.0.0-20230527012508-ac69476c46ff
+# github.com/cockroachdb/pebble v0.0.0-20230831210414-c872ea071a9f
 ## explicit; go 1.19
 github.com/cockroachdb/pebble
 github.com/cockroachdb/pebble/internal/arenaskl
@@ -52,20 +53,20 @@ github.com/cockroachdb/pebble/internal/manual
 github.com/cockroachdb/pebble/internal/private
 github.com/cockroachdb/pebble/internal/rangedel
 github.com/cockroachdb/pebble/internal/rangekey
-github.com/cockroachdb/pebble/internal/rate
 github.com/cockroachdb/pebble/internal/rawalloc
 github.com/cockroachdb/pebble/internal/testkeys
 github.com/cockroachdb/pebble/objstorage
 github.com/cockroachdb/pebble/objstorage/objstorageprovider
 github.com/cockroachdb/pebble/objstorage/objstorageprovider/objiotracing
+github.com/cockroachdb/pebble/objstorage/objstorageprovider/remoteobjcat
 github.com/cockroachdb/pebble/objstorage/objstorageprovider/sharedcache
-github.com/cockroachdb/pebble/objstorage/objstorageprovider/sharedobjcat
-github.com/cockroachdb/pebble/objstorage/shared
+github.com/cockroachdb/pebble/objstorage/remote
+github.com/cockroachdb/pebble/rangekey
 github.com/cockroachdb/pebble/record
 github.com/cockroachdb/pebble/sstable
 github.com/cockroachdb/pebble/vfs
 github.com/cockroachdb/pebble/vfs/atomicfs
-# github.com/cockroachdb/redact v1.1.3
+# github.com/cockroachdb/redact v1.1.5
 ## explicit; go 1.14
 github.com/cockroachdb/redact
 github.com/cockroachdb/redact/builder
@@ -77,15 +78,20 @@ github.com/cockroachdb/redact/internal/markers
 github.com/cockroachdb/redact/internal/redact
 github.com/cockroachdb/redact/internal/rfmt
 github.com/cockroachdb/redact/internal/rfmt/fmtsort
+# github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06
+## explicit; go 1.19
+github.com/cockroachdb/tokenbucket
 # github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
 ## explicit
 github.com/dgryski/go-rendezvous
-# github.com/getsentry/sentry-go v0.12.0
-## explicit; go 1.15
+# github.com/getsentry/sentry-go v0.23.0
+## explicit; go 1.18
 github.com/getsentry/sentry-go
-github.com/getsentry/sentry-go/internal/crypto/randutil
 github.com/getsentry/sentry-go/internal/debug
+github.com/getsentry/sentry-go/internal/otel/baggage
+github.com/getsentry/sentry-go/internal/otel/baggage/internal/baggage
 github.com/getsentry/sentry-go/internal/ratelimit
+github.com/getsentry/sentry-go/internal/traceparser
 # github.com/go-redis/redis/v8 v8.11.5
 ## explicit; go 1.17
 github.com/go-redis/redis/v8
@@ -103,21 +109,17 @@ github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 github.com/gogo/protobuf/sortkeys
 github.com/gogo/protobuf/types
-# github.com/golang/protobuf v1.5.2
+# github.com/golang/protobuf v1.5.3
 ## explicit; go 1.9
 github.com/golang/protobuf/proto
-github.com/golang/protobuf/ptypes
-github.com/golang/protobuf/ptypes/any
-github.com/golang/protobuf/ptypes/duration
-github.com/golang/protobuf/ptypes/timestamp
 # github.com/golang/snappy v0.0.4
 ## explicit
 github.com/golang/snappy
 # github.com/hjson/hjson-go v3.3.0+incompatible
 ## explicit
 github.com/hjson/hjson-go
-# github.com/klauspost/compress v1.15.15
-## explicit; go 1.17
+# github.com/klauspost/compress v1.16.7
+## explicit; go 1.18
 github.com/klauspost/compress
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
@@ -125,56 +127,67 @@ github.com/klauspost/compress/internal/cpuinfo
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/kr/pretty v0.3.0
+# github.com/kr/pretty v0.3.1
 ## explicit; go 1.12
 github.com/kr/pretty
 # github.com/kr/text v0.2.0
 ## explicit
 github.com/kr/text
-# github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369
+# github.com/matttproud/golang_protobuf_extensions v1.0.4
 ## explicit; go 1.9
 github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/prometheus/client_golang v1.12.0
-## explicit; go 1.13
+# github.com/prometheus/client_golang v1.16.0
+## explicit; go 1.17
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
-# github.com/prometheus/client_model v0.2.1-0.20210607210712-147c58e9608a
-## explicit; go 1.9
+# github.com/prometheus/client_model v0.4.0
+## explicit; go 1.18
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.32.1
-## explicit; go 1.13
+# github.com/prometheus/common v0.44.0
+## explicit; go 1.18
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
-# github.com/prometheus/procfs v0.7.3
-## explicit; go 1.13
+# github.com/prometheus/procfs v0.11.1
+## explicit; go 1.19
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/rogpeppe/go-internal v1.8.1
-## explicit; go 1.16
+# github.com/rogpeppe/go-internal v1.11.0
+## explicit; go 1.19
 github.com/rogpeppe/go-internal/fmtsort
-# github.com/sirupsen/logrus v1.9.2
+# github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
-# golang.org/x/exp v0.0.0-20200513190911-00229845015e
-## explicit; go 1.12
+# golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
+## explicit; go 1.20
+golang.org/x/exp/constraints
 golang.org/x/exp/rand
-# golang.org/x/net v0.10.0
+# golang.org/x/net v0.14.0
 ## explicit; go 1.17
 golang.org/x/net/html
 golang.org/x/net/html/atom
-# golang.org/x/sys v0.8.0
+# golang.org/x/sys v0.11.0
 ## explicit; go 1.17
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# google.golang.org/protobuf v1.27.1
-## explicit; go 1.9
+# golang.org/x/text v0.12.0
+## explicit; go 1.17
+golang.org/x/text/cases
+golang.org/x/text/internal
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
+golang.org/x/text/internal/tag
+golang.org/x/text/language
+golang.org/x/text/transform
+golang.org/x/text/unicode/norm
+# google.golang.org/protobuf v1.31.0
+## explicit; go 1.11
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
 google.golang.org/protobuf/internal/descfmt
@@ -202,8 +215,6 @@ google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
 google.golang.org/protobuf/types/descriptorpb
-google.golang.org/protobuf/types/known/anypb
-google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/timestamppb
 # gopkg.in/masci/flickr.v3 v3.0.0-20230428071620-b971d524ac6f
 ## explicit; go 1.20
