@@ -1,12 +1,12 @@
 #!/usr/bin/env gmake -f
 
-GOOPTS=CGO_ENABLED=0
+CGO_ENABLED=0
 BUILDOPTS=-ldflags="-s -w" -a -gcflags=all=-l -trimpath
 
 all: clean build
 
 build:
-	${GOOPTS} go build ${BUILDOPTS} -o aleesa-webapp-go \
+	go build ${BUILDOPTS} -o aleesa-webapp-go \
 		types.go globals.go pcache-db-util.go aleesa-webapp-lib.go main.go \
 		xkcdru.go randomFox.go theCatAPI.go bunicomic.go \
 		anekdotru.go monkeyUser.go obutts.go oboobs.go \
