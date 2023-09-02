@@ -24,7 +24,7 @@ func msgParser(ctx context.Context, msg string) {
 	var answer string
 	var j rMsg
 	var err error
-	regexpWeather, err := regexp.Compile("(w|weather|погода|погодка|погадка)[[:space:]]+.+")
+	regexpWeather, err := regexp.Compile("(w|weather|п|погода|погодка|погадка)[[:space:]]+.+")
 
 	if err != nil {
 		log.Errorf("Unable to compile regexp for weather command: %s", err)
