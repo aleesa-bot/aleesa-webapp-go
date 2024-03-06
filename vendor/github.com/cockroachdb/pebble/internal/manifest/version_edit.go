@@ -783,6 +783,12 @@ func (b *BulkVersionEdit) Accumulate(ve *VersionEdit) error {
 		b.AddedFileBacking = make(map[base.DiskFileNum]*FileBacking)
 	}
 	for _, fb := range ve.CreatedBackingTables {
+		if _, ok := b.AddedFileBacking[fb.DiskFileNum]; ok {
+			// There is already a FileBacking associated with fb.DiskFileNum.
+			// This should never happen. There must always be only one FileBacking
+			// associated with a backing sstable.
+			panic(fmt.Sprintf("pebble: duplicate file backing %s", fb.DiskFileNum.String()))
+		}
 		b.AddedFileBacking[fb.DiskFileNum] = fb
 	}
 
@@ -846,6 +852,9 @@ func AccumulateIncompleteAndApplySingleVE(
 	flushSplitBytes int64,
 	readCompactionRate int64,
 	backingStateMap map[base.DiskFileNum]*FileBacking,
+	addBackingFunc func(*FileBacking),
+	removeBackingFunc func(base.DiskFileNum),
+	orderingInvariants OrderingInvariants,
 ) (_ *Version, zombies map[base.DiskFileNum]uint64, _ error) {
 	if len(ve.RemovedBackingTables) != 0 {
 		panic("pebble: invalid incomplete version edit")
@@ -857,14 +866,14 @@ func AccumulateIncompleteAndApplySingleVE(
 	}
 	zombies = make(map[base.DiskFileNum]uint64)
 	v, err := b.Apply(
-		curr, cmp, formatKey, flushSplitBytes, readCompactionRate, zombies,
+		curr, cmp, formatKey, flushSplitBytes, readCompactionRate, zombies, orderingInvariants,
 	)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	for _, s := range b.AddedFileBacking {
-		backingStateMap[s.DiskFileNum] = s
+		addBackingFunc(s)
 	}
 
 	for fileNum := range zombies {
@@ -875,10 +884,9 @@ func AccumulateIncompleteAndApplySingleVE(
 			ve.RemovedBackingTables = append(
 				ve.RemovedBackingTables, fileNum,
 			)
-			delete(backingStateMap, fileNum)
+			removeBackingFunc(fileNum)
 		}
 	}
-
 	return v, zombies, nil
 }
 
@@ -899,6 +907,7 @@ func (b *BulkVersionEdit) Apply(
 	flushSplitBytes int64,
 	readCompactionRate int64,
 	zombies map[base.DiskFileNum]uint64,
+	orderingInvariants OrderingInvariants,
 ) (*Version, error) {
 	addZombie := func(state *FileBacking) {
 		if zombies != nil {
@@ -967,7 +976,7 @@ func (b *BulkVersionEdit) Apply(
 		// level.
 
 		for _, f := range deletedFilesMap {
-			if obsolete := v.Levels[level].tree.Delete(f); obsolete {
+			if obsolete := v.Levels[level].remove(f); obsolete {
 				// Deleting a file from the B-Tree may decrement its
 				// reference count. However, because we cloned the
 				// previous level's B-Tree, this should never result in a
@@ -976,7 +985,7 @@ func (b *BulkVersionEdit) Apply(
 				return nil, err
 			}
 			if f.HasRangeKeys {
-				if obsolete := v.RangeKeyLevels[level].tree.Delete(f); obsolete {
+				if obsolete := v.RangeKeyLevels[level].remove(f); obsolete {
 					// Deleting a file from the B-Tree may decrement its
 					// reference count. However, because we cloned the
 					// previous level's B-Tree, this should never result in a
@@ -1029,7 +1038,7 @@ func (b *BulkVersionEdit) Apply(
 			f.AllowedSeeks.Store(allowedSeeks)
 			f.InitAllowedSeeks = allowedSeeks
 
-			err := lm.tree.Insert(f)
+			err := lm.insert(f)
 			// We're adding this file to the new version, so increment the
 			// latest refs count.
 			f.LatestRef()
@@ -1037,7 +1046,7 @@ func (b *BulkVersionEdit) Apply(
 				return nil, errors.Wrap(err, "pebble")
 			}
 			if f.HasRangeKeys {
-				err = lmRange.tree.Insert(f)
+				err = lmRange.insert(f)
 				if err != nil {
 					return nil, errors.Wrap(err, "pebble")
 				}
@@ -1082,7 +1091,7 @@ func (b *BulkVersionEdit) Apply(
 			} else if err := v.InitL0Sublevels(cmp, formatKey, flushSplitBytes); err != nil {
 				return nil, errors.Wrap(err, "pebble: internal error")
 			}
-			if err := CheckOrdering(cmp, formatKey, Level(0), v.Levels[level].Iter()); err != nil {
+			if err := CheckOrdering(cmp, formatKey, Level(0), v.Levels[level].Iter(), orderingInvariants); err != nil {
 				return nil, errors.Wrap(err, "pebble: internal error")
 			}
 			continue
@@ -1103,7 +1112,7 @@ func (b *BulkVersionEdit) Apply(
 					end.Prev()
 				}
 			})
-			if err := CheckOrdering(cmp, formatKey, Level(level), check.Iter()); err != nil {
+			if err := CheckOrdering(cmp, formatKey, Level(level), check.Iter(), orderingInvariants); err != nil {
 				return nil, errors.Wrap(err, "pebble: internal error")
 			}
 		}
