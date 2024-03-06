@@ -1,12 +1,11 @@
 #!/usr/bin/env gmake -f
 
-CGO_ENABLED=0
-BUILDOPTS=-ldflags="-s -w" -a -gcflags=all=-l -trimpath
+BUILDOPTS=-ldflags='-s -w' -a -gcflags=all=-l -trimpath
 
 all: clean build
 
 build:
-	go build ${BUILDOPTS} -o aleesa-webapp-go \
+	CGO_ENABLED=0 go build ${BUILDOPTS} -o aleesa-webapp-go \
 		types.go globals.go pcache-db-util.go aleesa-webapp-lib.go main.go \
 		xkcdru.go randomFox.go theCatAPI.go bunicomic.go \
 		anekdotru.go monkeyUser.go obutts.go oboobs.go \
@@ -16,7 +15,7 @@ clean:
 	go clean
 
 upgrade:
-	rm -rf vendor
+	$(RM) -rf vendor
 	go get -d -u -t ./...
 	go mod tidy
 	go mod vendor
