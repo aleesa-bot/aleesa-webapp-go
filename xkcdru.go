@@ -1,11 +1,9 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -40,7 +38,7 @@ func xkcdruClient() (string, error) {
 		location := resp.Header.Get("Location")
 
 		if len(location) <= 3 {
-			err = errors.New("Location header too short")
+			err = fmt.Errorf("Location header too short")
 			return "", err
 		}
 
@@ -48,9 +46,7 @@ func xkcdruClient() (string, error) {
 
 		return fmt.Sprintf("https://xkcd.ru/i/%s_v1.png", location), nil
 	} else {
-		err = errors.New(
-			"resp.StatusCode: " +
-				strconv.Itoa(resp.StatusCode))
+		err = fmt.Errorf("resp.StatusCode: %d", resp.StatusCode)
 		return "", err
 	}
 

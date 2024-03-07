@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -11,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Обёртка с кэшированием
+// owmClient обёртка с кэшированием для openweatermap.org.
 func owmClient(city string) (string, error) {
 	var answer string
 
@@ -38,23 +37,23 @@ func owmClient(city string) (string, error) {
 		city = "Екатеринбург"
 	}
 
-	// А вот тут мы реализовываем механику кэширования
+	// А вот тут мы реализовываем механику кэширования.
 	tsNow := time.Now().Unix()
 	key := city + "+timestamp"
 
 	tsCacheString := getValue("cache", key)
 
-	// Для этого города в кэше пока ничего нету, вероятно это первый запрос
+	// Для этого города в кэше пока ничего нету, вероятно это первый запрос.
 	if tsCacheString == "" {
 		log.Debugf("OWM no cache entry for city %s", city)
 		answer, err := owmAPIClient(city)
 
-		// Здесь мы ничего сделать не можем
+		// Здесь мы ничего сделать не можем.
 		if err != nil {
 			return "", err
 		}
 
-		// Если всё хорошо, надо обновить кэш
+		// Если всё хорошо, надо обновить кэш.
 		if err := updateOwmCache(tsNow, city, answer); err != nil {
 			log.Error(err)
 		}
@@ -64,18 +63,18 @@ func owmClient(city string) (string, error) {
 
 	tsCache, err := strconv.ParseInt(tsCacheString, 10, 64)
 
-	// Если конверсия не удалась, значит значение в кэше хреновое, надо делать запрос в api и обновлять кэш
-	// Первое, что приходит в голову - коллизия хэшей sha256
+	// Если конверсия не удалась, значит значение в кэше хреновое, надо делать запрос в api и обновлять кэш.
+	// Первое, что приходит в голову - коллизия хэшей sha256.
 	if err != nil {
 		log.Warnf("OWM-Cache: unable to parse string as int64 (sha256 collision?): %s", err)
 		answer, err := owmAPIClient(city)
 
-		// Бинго! у нас ещё и ошибка при обращении к api openwethermap, здесь мы ничего сделать не можем
+		// Бинго! у нас ещё и ошибка при обращении к api openwethermap, здесь мы ничего сделать не можем.
 		if err != nil {
 			return "", err
 		}
 
-		// Если всё хорошо, надо обновить кэш
+		// Если всё хорошо, надо обновить кэш.
 		if err := updateOwmCache(tsNow, city, answer); err != nil {
 			log.Error(err)
 		}
@@ -88,12 +87,12 @@ func owmClient(city string) (string, error) {
 		log.Debugf("OWM cache miss for city: %s", city)
 		answer, err := owmAPIClient(city)
 
-		// Здесь мы ничего сделать не можем
+		// Здесь мы ничего сделать не можем.
 		if err != nil {
 			return "", err
 		}
 
-		// Если всё хорошо, надо обновить кэш
+		// Если всё хорошо, надо обновить кэш.
 		if err := updateOwmCache(tsNow, city, answer); err != nil {
 			log.Error(err)
 		}
@@ -106,7 +105,7 @@ func owmClient(city string) (string, error) {
 
 	// Какие-то проблемы с кэшом - ts есть, но самого кэша нету. Более подробная инфа по идее уже попала в лог.
 	// Или в кэше что-то не то - длина ответа *точно* не может быть меньше 140 символов.
-	// Попробуем достать данные из api и сохранить в тот самый многострадальный кэш
+	// Попробуем достать данные из api и сохранить в тот самый многострадальный кэш.
 	if len(answer) < 140 {
 		log.Debugf("OWM cache miss for city: %s", city)
 
@@ -116,12 +115,12 @@ func owmClient(city string) (string, error) {
 
 		answer, err = owmAPIClient(city)
 
-		// Здесь мы ничего сделать не можем
+		// Здесь мы ничего сделать не можем.
 		if err != nil {
 			return "", err
 		}
 
-		// Если всё хорошо, надо обновить кэш
+		// Если всё хорошо, надо обновить кэш.
 		if err := updateOwmCache(tsNow, city, answer); err != nil {
 			log.Error(err)
 		}
@@ -134,14 +133,15 @@ func owmClient(city string) (string, error) {
 	return answer, nil
 }
 
-// Делает запрос непосредственно в openweathermap.com api
+// owmAPIClient делает запрос непосредственно в openweathermap.com api.
 func owmAPIClient(city string) (string, error) {
 	var answer string
 
 	w, err := owm.NewCurrent("C", "ru", config.OpenWeatherMap.Appid)
 
 	if err != nil {
-		err := errors.New(fmt.Sprintf("OWM-Api: %s", err))
+		err := fmt.Errorf("OWM-Api: %w", err)
+
 		return answer, err
 	}
 
@@ -149,8 +149,8 @@ func owmAPIClient(city string) (string, error) {
 		// TODO: extend error
 		return answer, err
 	}
-	// тута парсер - направление ветра, градусы итд
 
+	// Тута парсер - направление ветра, градусы итд.
 	wind := "разный"
 
 	switch {
@@ -255,22 +255,22 @@ func owmAPIClient(city string) (string, error) {
 	return answer, err
 }
 
-// Обновляет кэш
+// updateOwmCache обновляет кэш.
 func updateOwmCache(tsNowUnix int64, city string, value string) error {
 	key := fmt.Sprintf("%s+timestamp", city)
 
-	// "Кэшируем" на 3 часа
+	// "Кэшируем" на 3 часа.
 	ts := tsNowUnix + int64((3 * time.Hour).Seconds())
 	timestamp := fmt.Sprintf("%d", ts)
 
 	if err := saveKeyWithValue("cache", key, timestamp); err != nil {
-		return errors.New(fmt.Sprintf("OWM-Cache: unable to save timestamp to cache: %s", err))
+		return fmt.Errorf("OWM-Cache: unable to save timestamp to cache: %w", err)
 	}
 
 	key = fmt.Sprintf("%s+value", city)
 
 	if err := saveKeyWithValue("cache", key, value); err != nil {
-		return errors.New(fmt.Sprintf("OWM-Cache: unable to save answer to cache: %s", err))
+		return fmt.Errorf("OWM-Cache: unable to save answer to cache: %w", err)
 	}
 
 	return nil

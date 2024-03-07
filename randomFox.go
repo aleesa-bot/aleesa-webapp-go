@@ -2,24 +2,26 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
-	log "github.com/sirupsen/logrus"
+	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
 	"regexp"
-	"strconv"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func randomFoxClient() (string, error) {
-	var err error
+	var (
+		err error
+		c   = http.Client{
+			Timeout: 10 * time.Second,
+		}
+		URL = "https://randomfox.ca/floof/"
+	)
 
-	var c = http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	req, err := http.NewRequest(http.MethodGet, "https://randomfox.ca/floof/", nil)
+	req, err := http.NewRequest(http.MethodGet, URL, nil) //nolint: noctx
 	if err != nil {
 		return "", err
 	}
@@ -27,7 +29,7 @@ func randomFoxClient() (string, error) {
 	req.Header.Set("User-Agent", userAgents[rand.Intn(len(userAgents))])
 
 	var resp *http.Response
-	resp, err = c.Do(req)
+	resp, err = c.Do(req) //nolint: bodyclose
 
 	if err != nil {
 		return "", err
@@ -42,9 +44,7 @@ func randomFoxClient() (string, error) {
 	}(resp.Body)
 
 	if resp.StatusCode != 200 {
-		err = errors.New(
-			"resp.StatusCode: " +
-				strconv.Itoa(resp.StatusCode))
+		err = fmt.Errorf("resp.StatusCode: %d", resp.StatusCode)
 		return "", err
 	}
 

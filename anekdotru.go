@@ -5,23 +5,25 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"math/rand"
 	"net/http"
 	"regexp"
-	"strconv"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func anekdotruClient() (string, error) {
-	var err error
+	var (
+		err error
+		c   = http.Client{
+			Timeout: 10 * time.Second,
+		}
+		URL = "https://www.anekdot.ru/rss/randomu.html"
+	)
 
-	var c = http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	req, err := http.NewRequest(http.MethodGet, "https://www.anekdot.ru/rss/randomu.html", nil)
+	req, err := http.NewRequest(http.MethodGet, URL, nil)
 	if err != nil {
 		return "", err
 	}
@@ -29,7 +31,7 @@ func anekdotruClient() (string, error) {
 	req.Header.Set("User-Agent", userAgents[rand.Intn(len(userAgents))])
 
 	var resp *http.Response
-	resp, err = c.Do(req)
+	resp, err = c.Do(req) //nolint: bodyclose
 
 	if err != nil {
 		return "", err
@@ -39,14 +41,13 @@ func anekdotruClient() (string, error) {
 		err := Body.Close()
 
 		if err != nil {
-			log.Errorf("Unable to close response body for thecatapi request: %s", err)
+			log.Errorf("Unable to close response body to %s request: %s", URL, err)
 		}
 	}(resp.Body)
 
 	if resp.StatusCode != 200 {
-		err = errors.New(
-			"resp.StatusCode: " +
-				strconv.Itoa(resp.StatusCode))
+		err = fmt.Errorf("response code to %s is not 200: %d", URL, resp.StatusCode)
+
 		return "", err
 	}
 
@@ -73,26 +74,27 @@ func anekdotruClient() (string, error) {
 			anek = re.ReplaceAll(anek, []byte(`"`))
 
 			re = regexp.MustCompile(`\\"`)
-			anekJson := re.ReplaceAll(anek, []byte(`"`))
-			anekJson = bytes.ToValidUTF8(anekJson, []byte{0xef, 0xbf, 0xbd})
+			anekJSON := re.ReplaceAll(anek, []byte(`"`))
+			anekJSON = bytes.ToValidUTF8(anekJSON, []byte{0xef, 0xbf, 0xbd})
 
 			var anekMap []string
-			if err := json.Unmarshal(anekJson, &anekMap); err != nil {
-				return fmt.Sprintf("RespBody:%s\n\nAnekJSON: %s", respBody, string(anekJson)), err
+			if err := json.Unmarshal(anekJSON, &anekMap); err != nil {
+				return fmt.Sprintf("RespBody:%s\n\nAnekJSON: %s", respBody, string(anekJSON)), err
 			}
 
 			re = regexp.MustCompile(`<br>`)
 			answer := re.ReplaceAll([]byte(anekMap[0]), []byte("\n"))
 
 			return string(answer), nil
-		} else {
-			fmt.Printf("a length: %d\nvalue: %v", len(a), a)
 		}
+
+		fmt.Printf("a length: %d\nvalue: %v", len(a), a)
 	} else {
 		fmt.Printf("aneks length: %d\nvalue: %v", len(aneks), aneks)
 	}
 
 	err = errors.New("Unable to parse response from www.anekdot.ru: " + string(respBody))
+
 	return "", err
 }
 

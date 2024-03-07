@@ -44,10 +44,12 @@ linters:
     - gofmt
     - goimports
     - gosec
+    - gosmopolitan
     - grouper
     - importas
     - ireturn
     - makezero
+    - mirror
     - nakedret
     - nilerr
     - nilnil

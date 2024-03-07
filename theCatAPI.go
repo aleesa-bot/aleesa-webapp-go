@@ -2,23 +2,25 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
-	log "github.com/sirupsen/logrus"
+	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func theCatAPIClient() (string, error) {
-	var err error
+	var (
+		err error
+		c   = http.Client{
+			Timeout: 10 * time.Second,
+		}
+		URL = "https://api.thecatapi.com/v1/images/search"
+	)
 
-	var c = http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	req, err := http.NewRequest(http.MethodGet, "https://api.thecatapi.com/v1/images/search", nil)
+	req, err := http.NewRequest(http.MethodGet, URL, nil) //nolint: noctx
 	if err != nil {
 		return "", err
 	}
@@ -26,7 +28,7 @@ func theCatAPIClient() (string, error) {
 	req.Header.Set("User-Agent", userAgents[rand.Intn(len(userAgents))])
 
 	var resp *http.Response
-	resp, err = c.Do(req)
+	resp, err = c.Do(req) //nolint: bodyclose
 
 	if err != nil {
 		return "", err
@@ -36,14 +38,13 @@ func theCatAPIClient() (string, error) {
 		err := Body.Close()
 
 		if err != nil {
-			log.Errorf("Unable to close response body for thecatapi request: %s", err)
+			log.Errorf("Unable to close response body for request to %s: %s", URL, err)
 		}
 	}(resp.Body)
 
 	if resp.StatusCode != 200 {
-		err = errors.New(
-			"resp.StatusCode: " +
-				strconv.Itoa(resp.StatusCode))
+		err = fmt.Errorf("request to %s failed: %s", URL, resp.Status)
+
 		return "", err
 	}
 

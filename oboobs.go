@@ -2,24 +2,27 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func oboobsClient() (string, error) {
-	var err error
+	var (
+		err error
+		c   = http.Client{
+			Timeout: 10 * time.Second,
+		}
 
-	var c = http.Client{
-		Timeout: 10 * time.Second,
-	}
+		URL = "http://api.oboobs.ru/boobs/0/1/random"
+	)
 
-	req, err := http.NewRequest(http.MethodGet, "http://api.oboobs.ru/boobs/0/1/random", nil)
+	req, err := http.NewRequest(http.MethodGet, URL, nil)
+
 	if err != nil {
 		return "", err
 	}
@@ -27,7 +30,7 @@ func oboobsClient() (string, error) {
 	req.Header.Set("User-Agent", userAgents[rand.Intn(len(userAgents))])
 
 	var resp *http.Response
-	resp, err = c.Do(req)
+	resp, err = c.Do(req) //nolint: bodyclose
 
 	if err != nil {
 		return "", err
@@ -37,14 +40,13 @@ func oboobsClient() (string, error) {
 		err := Body.Close()
 
 		if err != nil {
-			log.Errorf("Unable to close response body for thecatapi request: %s", err)
+			log.Errorf("Unable to close response body for request to %s: %s", URL, err)
 		}
 	}(resp.Body)
 
 	if resp.StatusCode != 200 {
-		err = errors.New(
-			"resp.StatusCode: " +
-				strconv.Itoa(resp.StatusCode))
+		err = fmt.Errorf("request to %s failed: %s", URL, resp.Status)
+
 		return "", err
 	}
 
@@ -62,11 +64,13 @@ func oboobsClient() (string, error) {
 	}
 
 	if len(boobs) == 0 {
-		err = errors.New("Empty json array returned from api.oboobs.ru")
+		err = fmt.Errorf("empty json array returned from %s", URL)
+
 		return "", err
 	}
 
 	answer := fmt.Sprintf("https://media.oboobs.ru/%s", boobs[0].Preview)
+
 	return answer, nil
 }
 

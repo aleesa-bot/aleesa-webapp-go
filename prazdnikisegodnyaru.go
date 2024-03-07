@@ -86,11 +86,12 @@ func psrClient() (string, error) {
 }
 
 func psrAPIClient() (string, error) {
-	var err error
-
-	var c = http.Client{
-		Timeout: 10 * time.Second,
-	}
+	var (
+		err error
+		c   = http.Client{
+			Timeout: 10 * time.Second,
+		}
+	)
 
 	req, err := http.NewRequest(http.MethodGet, "https://prazdniki-segodnya.ru/", nil)
 	if err != nil {
@@ -119,9 +120,7 @@ func psrAPIClient() (string, error) {
 	}(resp.Body)
 
 	if resp.StatusCode != 200 {
-		err = errors.New(
-			"resp.StatusCode: " +
-				strconv.Itoa(resp.StatusCode))
+		err = fmt.Errorf("resp.StatusCode: %d", resp.StatusCode)
 		return "", err
 	}
 

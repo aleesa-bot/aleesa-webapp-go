@@ -2,24 +2,25 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func obuttsClient() (string, error) {
-	var err error
+	var (
+		err error
+		c   = http.Client{
+			Timeout: 10 * time.Second,
+		}
+		URL = "http://api.obutts.ru/butts/0/1/random"
+	)
 
-	var c = http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	req, err := http.NewRequest(http.MethodGet, "http://api.obutts.ru/butts/0/1/random", nil)
+	req, err := http.NewRequest(http.MethodGet, URL, nil)
 	if err != nil {
 		return "", err
 	}
@@ -27,7 +28,7 @@ func obuttsClient() (string, error) {
 	req.Header.Set("User-Agent", userAgents[rand.Intn(len(userAgents))])
 
 	var resp *http.Response
-	resp, err = c.Do(req)
+	resp, err = c.Do(req) //nolint: bodyclose
 
 	if err != nil {
 		return "", err
@@ -37,14 +38,13 @@ func obuttsClient() (string, error) {
 		err := Body.Close()
 
 		if err != nil {
-			log.Errorf("Unable to close response body for thecatapi request: %s", err)
+			log.Errorf("Unable to close response body for request to %s: %s", URL, err)
 		}
 	}(resp.Body)
 
 	if resp.StatusCode != 200 {
-		err = errors.New(
-			"resp.StatusCode: " +
-				strconv.Itoa(resp.StatusCode))
+		err = fmt.Errorf("request to %s failed: %s", URL, resp.Status)
+
 		return "", err
 	}
 
@@ -62,11 +62,13 @@ func obuttsClient() (string, error) {
 	}
 
 	if len(butt) == 0 {
-		err = errors.New("Empty json array returned from api.obutts.ru")
+		err = fmt.Errorf("empty json array returned from %s", URL)
+
 		return "", err
 	}
 
 	answer := fmt.Sprintf("http://media.obutts.ru/%s", butt[0].Preview)
+
 	return answer, nil
 }
 

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -18,23 +17,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Горутинка, которая парсит json-чики прилетевшие из REDIS-ки
+// Горутинка, которая парсит json-чики прилетевшие из REDIS-ки.
 func msgParser(ctx context.Context, msg string) {
-	var sendTo string
-	var answer string
-	var j rMsg
-	var err error
-	regexpWeather, err := regexp.Compile("(w|weather|п|погода|погодка|погадка)[[:space:]]+.+")
+	var (
+		sendTo string
+		answer string
+		j      rMsg
+		err    error
+	)
 
-	if err != nil {
-		log.Errorf("Unable to compile regexp for weather command: %s", err)
-		return
-	}
+	regexpWeather := regexp.MustCompile("(w|weather|п|погода|погодка|погадка)[[:space:]]+.+")
 
 	log.Debugf("Incomming raw json: %s", msg)
 
 	if err := json.Unmarshal([]byte(msg), &j); err != nil {
 		log.Warnf("Unable to to parse message from redis channel: %s", err)
+
 		return
 	}
 
@@ -42,16 +40,18 @@ func msgParser(ctx context.Context, msg string) {
 
 	if err != nil {
 		log.Warn(err)
+
 		return
 	}
 
 	// Если у нас циклическая пересылка сообщения, попробуем её тут разорвать, отбросив сообщение
 	if j.Misc.Fwdcnt > config.ForwardsMax {
 		log.Warnf("Discarding msg with fwd_cnt exceeding max value: %s", msg)
+
 		return
-	} else {
-		j.Misc.Fwdcnt++
 	}
+
+	j.Misc.Fwdcnt++
 
 	sendTo = j.Plugin
 
@@ -68,6 +68,7 @@ func msgParser(ctx context.Context, msg string) {
 				if err != nil {
 					log.Errorf("Try %d/3 unable to query api.thecatapi.com: %v", i+1, err)
 					time.Sleep(1 * time.Second)
+
 					continue
 				}
 
@@ -93,6 +94,7 @@ func msgParser(ctx context.Context, msg string) {
 				if err != nil {
 					log.Errorf("Try %d/3 unable to query randomfox.ca: %v", i+1, err)
 					time.Sleep(1 * time.Second)
+
 					continue
 				}
 
@@ -116,6 +118,7 @@ func msgParser(ctx context.Context, msg string) {
 				if err != nil {
 					log.Errorf("Try %d/3 unable to query xkcd.ru: %v", i+1, err)
 					time.Sleep(1 * time.Second)
+
 					continue
 				}
 
@@ -139,6 +142,7 @@ func msgParser(ctx context.Context, msg string) {
 				if err != nil {
 					log.Errorf("Try %d/3 unable to query www.bunicomic.com: %v", i+1, err)
 					time.Sleep(1 * time.Second)
+
 					continue
 				}
 
@@ -162,6 +166,7 @@ func msgParser(ctx context.Context, msg string) {
 				if err != nil {
 					log.Errorf("Try %d/3 unable to query www.anekdot.ru: %v", i+1, err)
 					time.Sleep(1 * time.Second)
+
 					continue
 				}
 
@@ -185,6 +190,7 @@ func msgParser(ctx context.Context, msg string) {
 				if err != nil {
 					log.Errorf("Try %d/3 unable to query monkeyuser.com: %v", i+1, err)
 					time.Sleep(1 * time.Second)
+
 					continue
 				}
 
@@ -208,6 +214,7 @@ func msgParser(ctx context.Context, msg string) {
 				if err != nil {
 					log.Errorf("Try %d/3 unable to query api.obutts.ru: %v", i+1, err)
 					time.Sleep(1 * time.Second)
+
 					continue
 				}
 
@@ -232,6 +239,7 @@ func msgParser(ctx context.Context, msg string) {
 				if err != nil {
 					log.Errorf("Try %d/3 unable to query api.oboobs.ru: %v", i+1, err)
 					time.Sleep(1 * time.Second)
+
 					continue
 				}
 
@@ -256,6 +264,7 @@ func msgParser(ctx context.Context, msg string) {
 				if err != nil {
 					log.Errorf("Try %d/3 unable to query prazdniki-segodnya.ru: %v", i+1, err)
 					time.Sleep(1 * time.Second)
+
 					continue
 				}
 
@@ -268,25 +277,24 @@ func msgParser(ctx context.Context, msg string) {
 				j.Message = answer
 			}
 		case regexpWeather.Match([]byte(cmd)):
-			if re, err := regexp.Compile("[[:space:]]+"); err != nil {
-				log.Errorf("Unable to compile regex for weather command prsing: %s", err)
-			} else {
-				city := re.Split(cmd, 2)[1]
+			re := regexp.MustCompile("[[:space:]]+")
+			city := re.Split(cmd, 2)[1]
 
-				if answer, err := owmClient(city); err != nil {
-					log.Errorf("Unable to handle city %s in openweartermap api: %s", city, err)
-					j.Message = fmt.Sprintf("Я не знаю, какая погода в %s", city)
-				} else {
-					j.Message = answer
-				}
+			if answer, err := owmClient(city); err != nil {
+				log.Errorf("Unable to handle city %s in openweartermap api: %s", city, err)
+				j.Message = fmt.Sprintf("Я не знаю, какая погода в %s", city)
+			} else {
+				j.Message = answer
 			}
 
 		default:
 			log.Errorf("Unknown command %s, unable to handle, skipping", j.Message)
+
 			return
 		}
 	} else {
 		log.Errorf("Message is not a command: %s, unable to handle, skipping", j.Message)
+
 		return
 	}
 
@@ -311,6 +319,7 @@ func msgParser(ctx context.Context, msg string) {
 
 	if err != nil {
 		log.Warnf("Unable to to serialize message for redis: %s", err)
+
 		return
 	}
 
@@ -322,7 +331,7 @@ func msgParser(ctx context.Context, msg string) {
 	}
 }
 
-// Читает и валидирует конфиг, а также выставляет некоторые default-ы, если значений для параметров в конфиге нет
+// Читает и валидирует конфиг, а также выставляет некоторые default-ы, если значений для параметров в конфиге нет.
 func readConfig() {
 	configLoaded := false
 	executablePath, err := os.Executable()
@@ -351,6 +360,7 @@ func readConfig() {
 		// Конфиг-файл длинноват для конфига, попробуем следующего кандидата
 		if fileInfo.Size() > 65535 {
 			log.Warnf("Config file %s is too long for config, skipping", location)
+
 			continue
 		}
 
@@ -359,19 +369,24 @@ func readConfig() {
 		// Не удалось прочитать, попробуем следующего кандидата
 		if err != nil {
 			log.Warnf("Skip reading config file %s: %s", location, err)
+
 			continue
 		}
 
 		// Исходя из документации, hjson какбы умеет парсить "кривой" json, но парсит его в map-ку.
 		// Интереснее на выходе получить структурку: то есть мы вначале конфиг преобразуем в map-ку, затем эту map-ку
 		// сериализуем в json, а потом json преврщааем в стркутурку. Не очень эффективно, но он и не часто требуется.
-		var sampleConfig myConfig
-		var tmp map[string]interface{}
+		var (
+			sampleConfig myConfig
+			tmp          map[string]interface{}
+		)
+
 		err = hjson.Unmarshal(buf, &tmp)
 
 		// Не удалось распарсить - попробуем следующего кандидата
 		if err != nil {
 			log.Warnf("Skip parsing config file %s: %s", location, err)
+
 			continue
 		}
 
@@ -380,11 +395,13 @@ func readConfig() {
 		// Не удалось преобразовать map-ку в json
 		if err != nil {
 			log.Warnf("Skip parsing config file %s: %s", location, err)
+
 			continue
 		}
 
 		if err := json.Unmarshal(tmpjson, &sampleConfig); err != nil {
 			log.Warnf("Skip parsing config file %s: %s", location, err)
+
 			continue
 		}
 
@@ -409,6 +426,7 @@ func readConfig() {
 
 		if sampleConfig.Channel == "" {
 			log.Errorf("Channel field in config file %s must be set", location)
+
 			continue
 		}
 
@@ -418,6 +436,7 @@ func readConfig() {
 
 		if sampleConfig.Csign == "" {
 			log.Errorf("Csign field in config file %s must be set", location)
+
 			continue
 		}
 
@@ -427,11 +446,13 @@ func readConfig() {
 
 		if unsafe.Sizeof(sampleConfig.OpenWeatherMap) == 0 {
 			log.Errorf("Hash OpenWeatherMap in config file %s must be defined", location)
+
 			continue
 		}
 
 		if sampleConfig.OpenWeatherMap.Appid == "" {
 			log.Errorf("Openweathermap->appid in config file %s must be set to its valid value", location)
+
 			continue
 		}
 
@@ -439,7 +460,9 @@ func readConfig() {
 
 		config = sampleConfig
 		configLoaded = true
+
 		log.Infof("Using %s as config file", location)
+
 		break
 	}
 
@@ -449,7 +472,7 @@ func readConfig() {
 	}
 }
 
-// Хэндлер сигналов закрывает все бд и сваливает из приложения
+// Хэндлер сигналов закрывает все бд и сваливает из приложения.
 func sigHandler() {
 	var err error
 
@@ -492,7 +515,7 @@ func sigHandler() {
 	}
 }
 
-// Читает даденный файл построчно в массив строк
+// Читает даденный файл построчно в массив строк.
 func readLines(path string) ([]string, error) {
 	file, err := os.Open(path)
 
@@ -507,8 +530,10 @@ func readLines(path string) ([]string, error) {
 		}
 	}(file)
 
-	var lines []string
-	scanner := bufio.NewScanner(file)
+	var (
+		lines   []string
+		scanner = bufio.NewScanner(file)
+	)
 
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
@@ -517,38 +542,44 @@ func readLines(path string) ([]string, error) {
 	return lines, scanner.Err()
 }
 
-// Валидирует входящее сообщение
+// Валидирует входящее сообщение.
 func validateRmsg(j rMsg, msg string) (rMsg, error) {
 	if exist := j.From; exist == "" {
-		emsg := fmt.Sprintf("Incorrect msg from redis, no from field: %s", msg)
-		return j, errors.New(emsg)
+		emsg := fmt.Errorf("incorrect msg from redis, no from field: %s", msg)
+
+		return j, emsg
 	}
 
 	if exist := j.Chatid; exist == "" {
-		emsg := fmt.Sprintf("Incorrect msg from redis, no chatid field: %s", msg)
-		return j, errors.New(emsg)
+		emsg := fmt.Errorf("incorrect msg from redis, no chatid field: %s", msg)
+
+		return j, emsg
 	}
 
 	if exist := j.Userid; exist == "" {
-		emsg := fmt.Sprintf("Incorrect msg from redis, no userid field: %s", msg)
-		return j, errors.New(emsg)
+		emsg := fmt.Errorf("incorrect msg from redis, no userid field: %s", msg)
+
+		return j, emsg
 	}
 
 	// j.Threadid может быть пустым, значит либо нам его не дали, либо дали пустым. Это нормально.
 
 	if exist := j.Message; exist == "" {
-		emsg := fmt.Sprintf("Incorrect msg from redis, no message field: %s", msg)
-		return j, errors.New(emsg)
+		emsg := fmt.Errorf("incorrect msg from redis, no message field: %s", msg)
+
+		return j, emsg
 	}
 
 	if exist := j.Plugin; exist == "" {
-		emsg := fmt.Sprintf("Incorrect msg from redis, no plugin field: %s", msg)
-		return j, errors.New(emsg)
+		emsg := fmt.Errorf("incorrect msg from redis, no plugin field: %s", msg)
+
+		return j, emsg
 	}
 
 	if exist := j.Mode; exist == "" {
-		emsg := fmt.Sprintf("Incorrect msg from redis, no mode field: %s", msg)
-		return j, errors.New(emsg)
+		emsg := fmt.Errorf("incorrect msg from redis, no mode field: %s", msg)
+
+		return j, emsg
 	}
 
 	// j.Misc.Answer может и не быть, тогда ответа на такое сообщение не будет

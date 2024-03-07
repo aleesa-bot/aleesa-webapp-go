@@ -1,12 +1,13 @@
 package main
 
 import (
-	"errors"
+	"bytes"
+	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -14,21 +15,87 @@ import (
 )
 
 func monkeyUserClient() (string, error) {
-	var err error
+	var (
+		err error
+		c   = http.Client{
+			Timeout: 10 * time.Second,
+		}
 
-	var c = http.Client{
-		Timeout: 10 * time.Second,
-	}
+		baseURL   = "https://www.monkeyuser.com"
+		indexURL  = fmt.Sprintf("%s/index.json", baseURL)
+		userAgent = userAgents[rand.Intn(len(userAgents))]
+		resp      *http.Response
+	)
 
-	req, err := http.NewRequest(http.MethodGet, "https://www.monkeyuser.com/toc/", nil)
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	req, err := http.NewRequest(http.MethodGet, indexURL, nil) //nolint: noctx
+
 	if err != nil {
 		return "", err
 	}
 
-	req.Header.Set("User-Agent", userAgents[rand.Intn(len(userAgents))])
+	// Притворяемся браузером.
+	req.Header.Set("User-Agent", userAgent)
 
-	var resp *http.Response
-	resp, err = c.Do(req)
+	resp, err = c.Do(req) //nolint: bodyclose
+
+	if err != nil {
+		return "", err
+	}
+
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+
+		if err != nil {
+			log.Errorf("Unable to close response body for monkeyuser request: %s", err)
+		}
+	}(resp.Body)
+
+	if resp.StatusCode != 200 {
+		err = fmt.Errorf("request to %s failed: %s", indexURL, resp.Status)
+
+		return "", err
+	}
+
+	text, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		return "", err
+	}
+
+	// Time to fix UTF-8, just in case
+	text = bytes.ToValidUTF8(text, []byte{0xef, 0xbf, 0xbd})
+
+	var monkeyusers monkeyUsers
+
+	if err := json.Unmarshal(text, &monkeyusers); err != nil {
+		err = fmt.Errorf("unable to to parse response from %s: %w", indexURL, err)
+
+		return "", err
+	}
+
+	amountOfUsers := len(monkeyusers)
+
+	if amountOfUsers == 0 {
+		err = fmt.Errorf("no links found in %s", indexURL)
+
+		return "", err
+	}
+
+	ofChoice := rand.Intn(amountOfUsers)
+	pageURL := fmt.Sprintf("%s%s", baseURL, monkeyusers[ofChoice].URL)
+
+	// Делаем второй запрос к серверу.
+	req, err = http.NewRequest(http.MethodGet, pageURL, nil) //nolint: noctx
+
+	if err != nil {
+		return "", err
+	}
+
+	// Притворяемся тем же браузером.
+	req.Header.Set("User-Agent", userAgent)
+
+	resp, err = c.Do(req) //nolint: bodyclose
 
 	if err != nil {
 		return "", err
@@ -43,9 +110,8 @@ func monkeyUserClient() (string, error) {
 	}(resp.Body)
 
 	if resp.StatusCode != 200 {
-		err = errors.New(
-			"resp.StatusCode: " +
-				strconv.Itoa(resp.StatusCode))
+		err = fmt.Errorf("request to %s failed: %s", indexURL, resp.Status)
+
 		return "", err
 	}
 
@@ -56,24 +122,25 @@ func monkeyUserClient() (string, error) {
 		return "", err
 	}
 
-	var hyperlinks []string
-	var link func(*html.Node)
+	var (
+		hyperlink string
+		link      func(*html.Node)
+	)
 
 	link = func(n *html.Node) {
-		myFlag := false
-		if n.Type == html.ElementNode && n.Data == "a" {
-			for _, a_href := range n.Attr {
+		if n.Type == html.ElementNode && n.Data == "img" {
+			for _, a_href := range n.Attr { //nolint: revive,stylecheck
 				// Если у нас class == "lazyload small-image", то после него ключ data-src должен содержать
 				// искомый relative url
-				if a_href.Key == "class" && a_href.Val == "lazyload small-image" {
-					myFlag = true
+				if a_href.Key == "class" && a_href.Val == "logo" {
 					continue
 				}
-				if myFlag == true {
-					if a_href.Key == "data-src" {
-						myFlag = false
-						hyperlinks = append(hyperlinks, a_href.Val)
-					}
+
+				var v = a_href.Val
+				if a_href.Key == "src" && v != "/images/logo.png" {
+					hyperlink = v
+
+					break
 				}
 			}
 		}
@@ -83,16 +150,16 @@ func monkeyUserClient() (string, error) {
 			link(c)
 		}
 	}
+
 	link(doc)
 
 	// Возвращаем ссылку на картинку buni comic
-	if hyperlinks != nil {
-		monkeyuser := hyperlinks[rand.Intn(len(hyperlinks))]
-		monkeyuser = fmt.Sprintf("https://www.monkeyuser.com%s", monkeyuser)
-		return monkeyuser, nil
+	if hyperlink != "" {
+		return fmt.Sprintf("%s%s", baseURL, hyperlink), nil
 	}
 
-	err = errors.New("No links found on monkeyusers.com")
+	err = fmt.Errorf("no links found on monkeyusers.com")
+
 	return "", err
 }
 

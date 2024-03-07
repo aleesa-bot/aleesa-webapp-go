@@ -1,15 +1,16 @@
 package main
 
 import (
-	"errors"
-	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/html"
+	"crypto/tls"
+	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
 	"regexp"
-	"strconv"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/net/html"
 )
 
 func buniComicClient() (string, error) {
@@ -19,7 +20,8 @@ func buniComicClient() (string, error) {
 		Timeout: 10 * time.Second,
 	}
 
-	req, err := http.NewRequest(http.MethodGet, "http://www.bunicomic.com/?random&nocache=1", nil)
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	req, err := http.NewRequest(http.MethodGet, "https://www.bunicomic.com/?random&nocache=1", nil) //nolint: noctx
 
 	if err != nil {
 		return "", err
@@ -28,7 +30,7 @@ func buniComicClient() (string, error) {
 	req.Header.Set("User-Agent", userAgents[rand.Intn(len(userAgents))])
 
 	var resp *http.Response
-	resp, err = c.Do(req)
+	resp, err = c.Do(req) //nolint: bodyclose
 
 	if err != nil {
 		return "", err
@@ -43,9 +45,8 @@ func buniComicClient() (string, error) {
 	}(resp.Body)
 
 	if resp.StatusCode != 200 {
-		err = errors.New(
-			"resp.StatusCode: " +
-				strconv.Itoa(resp.StatusCode))
+		err = fmt.Errorf("resp.StatusCode: %d", resp.StatusCode)
+
 		return "", err
 	}
 
@@ -56,8 +57,10 @@ func buniComicClient() (string, error) {
 		return "", err
 	}
 
-	var metaTags []string
-	var meta func(*html.Node)
+	var (
+		metaTags []string
+		meta     func(*html.Node)
+	)
 
 	meta = func(n *html.Node) {
 		if n.Type == html.ElementNode && n.Data == "meta" {
@@ -77,10 +80,10 @@ func buniComicClient() (string, error) {
 	meta(doc)
 
 	// Возвращаем ссылку на картинку buni comic
-	if metaTags != nil {
+	if len(metaTags) != 0 {
 		// А теперь среди полученнного мусора найдём ссылку на урл
 		for _, buni := range metaTags {
-			match, err := regexp.MatchString(`wp\-content/uploads`, buni)
+			match, err := regexp.MatchString(`wp-content/uploads`, buni) //nolint: staticcheck
 
 			if err != nil {
 				return "", err
@@ -93,7 +96,8 @@ func buniComicClient() (string, error) {
 	}
 
 	// Картинки не выпарсилось, это точно ошибка
-	err = errors.New("Unable to get link to buni comic strip image")
+	err = fmt.Errorf("unable to get link to buni comic strip image")
+
 	return "", err
 }
 
