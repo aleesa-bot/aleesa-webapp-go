@@ -1,0 +1,44 @@
+{
+    # localhost if not set
+    "server" : "redis",
+
+    # 6379 if not set
+    "port" : 6379,
+
+    # redis server connection timeout. 10 seconds if not set
+    "timeout" : 3,
+
+    # info if not set
+    "loglevel" : "info",
+
+    # If not set defaults to stdout
+    "log" : "/var/log/aleesa-webapp-go/aleesa-webapp-go.log",
+
+    # Must be set to redis pubsub channel where aleesa-misc daemon sending messages
+    "channel" : "webapp-go",
+
+    # Data dir
+    "datadir" : "data",
+
+    # Must be set - it is default command prefix (it is also set for each chat client daemon)
+    "csign" : "!",
+
+    # Will be set to 5 if not set
+    "forwards_max" : 5,
+
+    "openweathermap": {
+        "enabled": true,
+        # (For shitty political reasons) 0 - use coordinates instead of coutry code, 1 - use country codes
+        # set to false if not defined here
+        "country": false,
+        # You have to register on openweathermap site and obtain it there
+        "appid": "get_it_on_openweathermap.org"
+    },
+
+    "flickr": {
+        "enabled": true,
+        # You have to register on flickr.com site and obtain it there
+        "key": "consumer_key",
+        "secret": "consumer_secret"     
+    }
+}
