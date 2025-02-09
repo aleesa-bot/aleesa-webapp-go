@@ -12,6 +12,7 @@ import (
 	"aleesa-webapp-go/internal/prazdnikisegodnyaru"
 	"aleesa-webapp-go/internal/randomfox"
 	"aleesa-webapp-go/internal/thecatapi"
+	"aleesa-webapp-go/internal/types"
 	"aleesa-webapp-go/internal/xkcdru"
 	"context"
 	"encoding/json"
@@ -28,7 +29,7 @@ func MsgParser(cfg *config.MyConfig, ctx context.Context, msg string) {
 	var (
 		sendTo string
 		answer string
-		j      RMsg
+		j      types.RMsg
 		err    error
 	)
 
@@ -411,6 +412,21 @@ func MsgParser(cfg *config.MyConfig, ctx context.Context, msg string) {
 				j.Message = answer
 			}
 
+		case cmd == "w" || cmd == "п" || cmd == "погода" || cmd == "weather" || cmd == "погодка" || cmd == "погадка":
+			// TODO: научиться различать 5-дневные и моментальные прогнозы. Пока умеем только моментальные.
+			city := openweathermap.QueryOwmUserCache(cfg, j.Chatid, j.Userid)
+
+			if city == "" {
+				j.Message = fmt.Sprint("Не припоминаю, какой город вас интересовал в прошлый раз.")
+			} else {
+				if answer, err := openweathermap.OwmClient(cfg, city, 0); err != nil {
+					log.Errorf("Unable to handle city %s in openweartermap api: %s", city, err)
+					j.Message = fmt.Sprintf("Я не знаю, какая погода в %s", city)
+				} else {
+					j.Message = answer
+				}
+			}
+
 		case regexpWeather.MatchString(cmd):
 			re := regexp.MustCompile("[[:space:]]+")
 			cmdStr := re.Split(cmd, 2)[0]
@@ -432,6 +448,16 @@ func MsgParser(cfg *config.MyConfig, ctx context.Context, msg string) {
 				}
 			}
 
+			if err = openweathermap.UpdateOwmUserCache(cfg, j.Chatid, j.Userid, city); err != nil {
+				log.Errorf(
+					"Unable to save value to cache, for chatid %s, userid %s and city %s: %s",
+					j.Chatid,
+					j.Userid,
+					city,
+					err,
+				)
+			}
+
 		default:
 			log.Errorf("Unknown command %s, unable to handle, skipping", j.Message)
 
@@ -444,7 +470,7 @@ func MsgParser(cfg *config.MyConfig, ctx context.Context, msg string) {
 	}
 
 	// Настало время формировать json и засылать его в дальше
-	var message SMsg
+	var message types.SMsg
 	message.From = j.From
 	message.Userid = j.Userid
 	message.Chatid = j.Chatid
@@ -477,7 +503,7 @@ func MsgParser(cfg *config.MyConfig, ctx context.Context, msg string) {
 }
 
 // ValidateRmsg валидирует входящее сообщение.
-func ValidateRmsg(cfg *config.MyConfig, j RMsg, msg string) (RMsg, error) {
+func ValidateRmsg(cfg *config.MyConfig, j types.RMsg, msg string) (types.RMsg, error) {
 	if exist := j.From; exist == "" {
 		emsg := fmt.Errorf("incorrect msg from redis, no from field: %s", msg)
 

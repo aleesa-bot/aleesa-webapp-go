@@ -1,4 +1,4 @@
-package lib
+package types
 
 // RMsg структурка, описывающая входящее сообщение из pubsub-канала redis-ки.
 type RMsg struct {

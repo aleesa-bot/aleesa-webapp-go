@@ -3,6 +3,7 @@ package openweathermap
 import (
 	"aleesa-webapp-go/internal/config"
 	"aleesa-webapp-go/internal/pcachedb"
+	"crypto/sha256"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -355,6 +356,34 @@ func QueryOwmCache(cfg *config.MyConfig, item OwmItem) (string, error) {
 	log.Debugf("OWM cache hit for city: %s", key)
 
 	return answer, err
+}
+
+// Записывает в кэш, кто каким городом интересовался в последний раз, когда спрашивал о погоде.
+// STUB
+func UpdateOwmUserCache(cfg *config.MyConfig, chatid string, entry string, value string) error {
+	var err error
+
+	// Chatid как есть лучше на диск не пробовать класть, мало ли что туда юзер впишет. Возьмём от него sha256.
+	data := []byte(chatid)
+	hash := fmt.Sprintf("%x", sha256.Sum256(data))
+
+	if err = pcachedb.SaveKeyWithValue(cfg, hash, entry, value); err != nil {
+		return fmt.Errorf("OWM-Cache: unable to save timestamp to cache: %w", err)
+	}
+
+	return err
+}
+
+// Возвращает из кэша город, которым интересовался пользователь из даденного чятика.
+func QueryOwmUserCache(cfg *config.MyConfig, chatid string, entry string) string {
+	// Chatid как есть лучше на диск не пробовать класть, мало ли что туда юзер впишет. Возьмём от него sha256.
+	var (
+		data  = []byte(chatid)
+		hash  = fmt.Sprintf("%x", sha256.Sum256(data))
+		value = pcachedb.GetValue(cfg, hash, entry)
+	)
+
+	return value
 }
 
 /* vim: set ft=go noet ai ts=4 sw=4 sts=4: */
