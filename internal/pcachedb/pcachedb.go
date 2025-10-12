@@ -2,6 +2,7 @@ package pcachedb
 
 import (
 	"aleesa-webapp-go/internal/config"
+	"aleesa-webapp-go/internal/log"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/cockroachdb/errors/oserror"
 	"github.com/cockroachdb/pebble"
-	log "github.com/sirupsen/logrus"
 )
 
 // StoreKV сохраняет в указанной бд ключ и значение.

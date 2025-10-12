@@ -2,6 +2,7 @@ package config
 
 import (
 	"aleesa-webapp-go/internal/defaults"
+	"aleesa-webapp-go/internal/log"
 	"bufio"
 	"encoding/json"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	"github.com/cockroachdb/pebble"
 	"github.com/go-redis/redis/v8"
 	"github.com/hjson/hjson-go"
-	log "github.com/sirupsen/logrus"
 )
 
 // MyConfig структурка, описывающая конфиг.

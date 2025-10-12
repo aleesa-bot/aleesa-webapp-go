@@ -5,6 +5,7 @@ import (
 	"aleesa-webapp-go/internal/bunicomic"
 	"aleesa-webapp-go/internal/config"
 	"aleesa-webapp-go/internal/flickr"
+	"aleesa-webapp-go/internal/log"
 	"aleesa-webapp-go/internal/monkeyuser"
 	"aleesa-webapp-go/internal/oboobs"
 	"aleesa-webapp-go/internal/obutts"
@@ -20,8 +21,6 @@ import (
 	"math/rand/v2"
 	"regexp"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // MsgParser горутинка, которая парсит json-чики прилетевшие из REDIS-ки.
@@ -46,7 +45,7 @@ func MsgParser(cfg *config.MyConfig, ctx context.Context, msg string) {
 	j, err = ValidateRmsg(cfg, j, msg)
 
 	if err != nil {
-		log.Warn(err)
+		log.Warnf("%s", err)
 
 		return
 	}
@@ -417,7 +416,7 @@ func MsgParser(cfg *config.MyConfig, ctx context.Context, msg string) {
 			city := openweathermap.QueryOwmUserCache(cfg, j.Chatid, j.Userid)
 
 			if city == "" {
-				j.Message = fmt.Sprint("Не припоминаю, какой город вас интересовал в прошлый раз.")
+				j.Message = "Не припоминаю, какой город вас интересовал в прошлый раз."
 			} else {
 				if answer, err := openweathermap.OwmClient(cfg, city, 0); err != nil {
 					log.Errorf("Unable to handle city %s in openweartermap api: %s", city, err)

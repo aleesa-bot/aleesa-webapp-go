@@ -9,7 +9,6 @@ require (
 	github.com/cockroachdb/pebble v1.1.4
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/hjson/hjson-go v3.3.0+incompatible
-	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/net v0.34.0
 	gopkg.in/masci/flickr.v3 v3.0.0-20230428071620-b971d524ac6f
 )

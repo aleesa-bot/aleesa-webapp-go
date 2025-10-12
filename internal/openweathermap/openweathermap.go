@@ -2,6 +2,7 @@ package openweathermap
 
 import (
 	"aleesa-webapp-go/internal/config"
+	"aleesa-webapp-go/internal/log"
 	"aleesa-webapp-go/internal/pcachedb"
 	"crypto/sha256"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	owm "github.com/briandowns/openweathermap"
-	log "github.com/sirupsen/logrus"
 )
 
 // Структурка для передачи в обрабтчик запросов в openweathermap api.
@@ -319,7 +319,7 @@ func QueryOwmCache(cfg *config.MyConfig, item OwmItem) (string, error) {
 
 		// Если всё хорошо, надо обновить кэш.
 		if err := UpdateOwmCache(cfg, tsNow, key, answer); err != nil {
-			log.Error(err)
+			log.Errorf("%s", err)
 		}
 
 		return answer, err

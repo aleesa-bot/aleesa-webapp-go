@@ -1,4 +1,6 @@
-data/config.json
-data/cache_db/**
-aleesa-webapp-go
-flickr_init
+/data/config.json
+/data/cache_db/**
+/aleesa-webapp-go
+/flickr_init
+/flickr_populate
+/flickr_test

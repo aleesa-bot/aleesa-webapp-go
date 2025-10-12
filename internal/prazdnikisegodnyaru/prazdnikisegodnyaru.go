@@ -2,6 +2,7 @@ package prazdnikisegodnyaru
 
 import (
 	"aleesa-webapp-go/internal/config"
+	"aleesa-webapp-go/internal/log"
 	"aleesa-webapp-go/internal/pcachedb"
 	"context"
 	"errors"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	"github.com/carlmjohnson/requests"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
 )
 
@@ -36,7 +36,7 @@ func PsrClient(cfg *config.MyConfig) (string, error) {
 		}
 
 		if err := UpdatePsrCache(cfg, eTime, answer); err != nil {
-			log.Error(err)
+			log.Errorf("%s", err)
 		}
 
 		return answer, nil
@@ -56,7 +56,7 @@ func PsrClient(cfg *config.MyConfig) (string, error) {
 
 		// Если всё хорошо, надо обновить кэш
 		if err := UpdatePsrCache(cfg, eTime, answer); err != nil {
-			log.Error(err)
+			log.Errorf("%s", err)
 		}
 
 		return answer, nil
@@ -78,7 +78,7 @@ func PsrClient(cfg *config.MyConfig) (string, error) {
 
 		// Если всё хорошо, надо обновить кэш
 		if err := UpdatePsrCache(cfg, eTime, answer); err != nil {
-			log.Error(err)
+			log.Errorf("%s", err)
 		}
 
 		return answer, nil

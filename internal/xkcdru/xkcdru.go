@@ -2,13 +2,12 @@ package xkcdru
 
 import (
 	"aleesa-webapp-go/internal/config"
+	"aleesa-webapp-go/internal/log"
 	"fmt"
 	"io"
 	"math/rand/v2"
 	"net/http"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 func APIClient(cfg *config.MyConfig) (string, error) {
