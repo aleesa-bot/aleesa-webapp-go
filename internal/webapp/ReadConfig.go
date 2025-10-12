@@ -1,54 +1,24 @@
-package config
+package webapp
 
 import (
-	"aleesa-webapp-go/internal/defaults"
+	"aleesa-webapp-go/internal/config"
 	"aleesa-webapp-go/internal/log"
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
 	"unsafe"
 
 	"github.com/cockroachdb/pebble"
-	"github.com/go-redis/redis/v8"
 	"github.com/hjson/hjson-go"
 )
 
-// MyConfig структурка, описывающая конфиг.
-type MyConfig struct {
-	Server         string `json:"server,omitempty"`
-	Port           int    `json:"port,omitempty"`
-	Timeout        int    `json:"timeout,omitempty"`
-	Loglevel       string `json:"loglevel,omitempty"`
-	Log            string `json:"log,omitempty"`
-	Channel        string `json:"channel,omitempty"`
-	DataDir        string `json:"datadir,omitempty"`
-	Csign          string `json:"csign,omitempty"`
-	ForwardsMax    int64  `json:"forwards_max,omitempty"`
-	OpenWeatherMap struct {
-		Enabled bool   `json:"enabled,omitempty"`
-		Country bool   `json:"country,omitempty"`
-		Appid   string `json:"appid,omitempty"`
-	} `json:"openweathermap,omitempty"`
-	Flickr struct {
-		Enabled          bool   `json:"enabled,omitempty"`
-		Key              string `json:"key,omitempty"`
-		Secret           string `json:"secret,omitempty"`
-		OAuthToken       string `json:"oauth_token,omitempty"`
-		OAuthTokenSecret string `json:"oauth_token_secret,omitempty"`
-	} `json:"flickr,omitempty"`
-	UserAgents  []string `json:"user_agents,omitempty"`
-	PcacheDB    map[string]*pebble.DB
-	RedisClient *redis.Client
-}
-
 // ReadConfig читает и валидирует конфиг, а также выставляет некоторые default-ы, если значений для параметров в конфиге
 // нет.
-func ReadConfig() (*MyConfig, error) {
-	locations, err := defaults.DefaultConfigFileLocations()
+func ReadConfig() error {
+	locations, err := DefaultConfigFileLocations()
 
 	if err != nil {
-		return &MyConfig{}, err
+		return err
 	}
 
 	for _, location := range locations {
@@ -60,7 +30,7 @@ func ReadConfig() (*MyConfig, error) {
 		}
 
 		// Конфиг-файл длинноват для конфига, попробуем следующего кандидата
-		if fileInfo.Size() > defaults.ConfigFileSize {
+		if fileInfo.Size() > ConfigFileSize {
 			log.Warnf("Config file %s is too long for config, skipping", location)
 
 			continue
@@ -79,7 +49,7 @@ func ReadConfig() (*MyConfig, error) {
 		// Интереснее на выходе получить структурку: то есть мы вначале конфиг преобразуем в map-ку, затем эту map-ку
 		// сериализуем в json, а потом json преврщааем в стркутурку. Не очень эффективно, но он и не часто требуется.
 		var (
-			sampleConfig *MyConfig
+			sampleConfig *config.MyConfig
 			tmp          map[string]interface{}
 		)
 
@@ -109,19 +79,19 @@ func ReadConfig() (*MyConfig, error) {
 
 		// Валидируем значения из конфига
 		if sampleConfig.Server == "" {
-			sampleConfig.Server = defaults.Host
+			sampleConfig.Server = Host
 		}
 
 		if sampleConfig.Port == 0 {
-			sampleConfig.Port = defaults.RedisPort
+			sampleConfig.Port = RedisPort
 		}
 
 		if sampleConfig.Timeout == 0 {
-			sampleConfig.Timeout = defaults.NetworkTimeout
+			sampleConfig.Timeout = NetworkTimeout
 		}
 
 		if sampleConfig.Loglevel == "" {
-			sampleConfig.Loglevel = defaults.Loglevel
+			sampleConfig.Loglevel = Loglevel
 		}
 
 		// sampleConfig.Log = "" if not set
@@ -133,7 +103,7 @@ func ReadConfig() (*MyConfig, error) {
 		}
 
 		if sampleConfig.DataDir == "" {
-			sampleConfig.DataDir = defaults.DataDir
+			sampleConfig.DataDir = DataDir
 		}
 
 		if sampleConfig.Csign == "" {
@@ -143,7 +113,7 @@ func ReadConfig() (*MyConfig, error) {
 		}
 
 		if sampleConfig.ForwardsMax == 0 {
-			sampleConfig.ForwardsMax = defaults.ForwardMax
+			sampleConfig.ForwardsMax = ForwardMax
 		}
 
 		if unsafe.Sizeof(sampleConfig.OpenWeatherMap) == 0 {
@@ -165,7 +135,7 @@ func ReadConfig() (*MyConfig, error) {
 		uaList, err := ReadLines(uaFile)
 
 		if err != nil {
-			return &MyConfig{}, fmt.Errorf("unable to read %s: %w", uaFile, err)
+			return fmt.Errorf("unable to read %s: %w", uaFile, err)
 		}
 
 		sampleConfig.UserAgents = uaList
@@ -174,37 +144,12 @@ func ReadConfig() (*MyConfig, error) {
 
 		log.Infof("Using %s as config file", location)
 
-		return sampleConfig, nil
+		Config = sampleConfig
+
+		return nil
 	}
 
-	return &MyConfig{}, fmt.Errorf("config was not loaded! Refusing to start")
-}
-
-// ReadLines читает даденный файл построчно в массив строк.
-func ReadLines(path string) ([]string, error) {
-	file, err := os.Open(path)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-			log.Errorf("Unable to close file %s:%s", path, err)
-		}
-	}(file)
-
-	var (
-		lines   []string
-		scanner = bufio.NewScanner(file)
-	)
-
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-
-	return lines, scanner.Err()
+	return fmt.Errorf("config was not loaded! Refusing to start")
 }
 
 /* vim: set ft=go noet ai ts=4 sw=4 sts=4: */

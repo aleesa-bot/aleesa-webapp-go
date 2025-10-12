@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"aleesa-webapp-go/internal/config"
-	"aleesa-webapp-go/internal/lib"
 	"aleesa-webapp-go/internal/log"
+	"aleesa-webapp-go/internal/webapp"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -35,7 +35,7 @@ func main() {
 		logfile *os.File
 	)
 
-	cfg, err := config.ReadConfig()
+	err := webapp.ReadConfig()
 
 	if err != nil {
 		log.Errorf("Unable to parse config: %s", err)
@@ -43,24 +43,24 @@ func main() {
 	}
 
 	// Откроем лог и скормим его логгеру.
-	if cfg.Log != "" {
-		logfile, err = os.OpenFile(cfg.Log, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	if webapp.Config.Log != "" {
+		logfile, err = os.OpenFile(webapp.Config.Log, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 
 		if err != nil {
-			log.Errorf("Unable to open log file %s: %s", cfg.Log, err)
+			log.Errorf("Unable to open log file %s: %s", webapp.Config.Log, err)
 			os.Exit(1)
 		}
 	}
 
-	log.Init(cfg.Loglevel, logfile)
+	log.Init(webapp.Config.Loglevel, logfile)
 
 	// Иницализируем клиента Редиски.
-	cfg.RedisClient = redis.NewClient(&redis.Options{
-		Addr: fmt.Sprintf("%s:%d", cfg.Server, cfg.Port),
-	}).WithContext(Ctx).WithTimeout(time.Duration(cfg.Timeout) * time.Second)
+	webapp.Config.RedisClient = redis.NewClient(&redis.Options{
+		Addr: fmt.Sprintf("%s:%d", webapp.Config.Server, webapp.Config.Port),
+	}).WithContext(Ctx).WithTimeout(time.Duration(webapp.Config.Timeout) * time.Second)
 
 	// Обозначим, что хотим после соединения подписаться на события из канала config.Channel.
-	Subscriber = cfg.RedisClient.Subscribe(Ctx, cfg.Channel)
+	Subscriber = webapp.Config.RedisClient.Subscribe(Ctx, webapp.Config.Channel)
 
 	// Самое время поставить трапы на сигналы.
 	signal.Notify(SigChan,
@@ -68,18 +68,8 @@ func main() {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 
-	// Откроем лог и скормим его логгеру.
-	if cfg.Log != "" {
-		logfile, err = os.OpenFile(cfg.Log, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
-
-		if err != nil {
-			log.Errorf("Unable to open log file %s: %s", cfg.Log, err)
-			os.Exit(1)
-		}
-	}
-
 	// Запустим обработчик сигналов.
-	go SigHandler(cfg)
+	go SigHandler(webapp.Config)
 
 	// Начнём выгребать события из редиски (длина конвеера/буфера канала по-умолчанию - 100 сообщений).
 	ch := Subscriber.Channel()
@@ -88,13 +78,15 @@ func main() {
 
 	for msg := range ch {
 		if !Shutdown {
-			lib.MsgParser(cfg, Ctx, msg.Payload)
+			webapp.MsgParser(webapp.Config, Ctx, msg.Payload)
 		}
 	}
 }
 
 // SigHandler хэндлер сигналов закрывает все бд и сваливает из приложения.
 func SigHandler(cfg *config.MyConfig) {
+	// TODO: утащить отсюда в модули.
+
 	var err error
 
 	for {

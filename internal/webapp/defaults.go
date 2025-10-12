@@ -1,18 +1,10 @@
-package defaults
+package webapp
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
 )
-
-var ForwardMax int64 = 5
-var ConfigFileSize int64 = 65535
-var DataDir = "data"
-var Host = "localhost"
-var Loglevel = "info"
-var RedisPort = 6379
-var NetworkTimeout = 10
 
 func DefaultConfigFileLocations() ([]string, error) {
 	var locations []string

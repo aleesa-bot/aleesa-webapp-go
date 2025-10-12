@@ -1,18 +1,18 @@
 package main
 
 import (
-	"aleesa-webapp-go/internal/config"
 	"aleesa-webapp-go/internal/flickr"
+	"aleesa-webapp-go/internal/webapp"
 	"fmt"
 	"os"
 )
 
 func main() {
-	if c, err := config.ReadConfig(); err != nil {
+	if err := webapp.ReadConfig(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	} else {
-		if err := flickr.Populate(c); err != nil {
+		if err := flickr.Populate(webapp.Config); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}

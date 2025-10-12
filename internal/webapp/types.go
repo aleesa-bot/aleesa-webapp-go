@@ -1,4 +1,4 @@
-package types
+package webapp
 
 // RMsg структурка, описывающая входящее сообщение из pubsub-канала redis-ки.
 type RMsg struct {
