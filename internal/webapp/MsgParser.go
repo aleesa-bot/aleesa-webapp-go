@@ -23,7 +23,7 @@ import (
 )
 
 // MsgParser горутинка, которая парсит json-чики прилетевшие из REDIS-ки.
-func MsgParser(cfg *config.MyConfig, ctx context.Context, msg string) {
+func MsgParser(cfg *config.MyConfig, ctx context.Context, msg string) { //nolint: revive
 	var (
 		sendTo string
 		answer string
@@ -419,7 +419,7 @@ func MsgParser(cfg *config.MyConfig, ctx context.Context, msg string) {
 			} else {
 				if answer, err := openweathermap.OwmClient(cfg, city, 0); err != nil {
 					log.Errorf("Unable to handle city %s in openweartermap api: %s", city, err)
-					j.Message = fmt.Sprintf("Я не знаю, какая погода в %s", city)
+					j.Message = "Я не знаю, какая погода в " + city
 				} else {
 					j.Message = answer
 				}
@@ -433,14 +433,14 @@ func MsgParser(cfg *config.MyConfig, ctx context.Context, msg string) {
 			if regexp.MustCompile(`5$`).MatchString(cmdStr) {
 				if answer, err := openweathermap.OwmClient(cfg, city, 5); err != nil {
 					log.Errorf("Unable to handle city %s in openweartermap api: %s", city, err)
-					j.Message = fmt.Sprintf("Я не знаю, какая погода в %s", city)
+					j.Message = "Я не знаю, какая погода в " + city
 				} else {
 					j.Message = answer
 				}
 			} else {
 				if answer, err := openweathermap.OwmClient(cfg, city, 0); err != nil {
 					log.Errorf("Unable to handle city %s in openweartermap api: %s", city, err)
-					j.Message = fmt.Sprintf("Я не знаю, какая погода в %s", city)
+					j.Message = "Я не знаю, какая погода в " + city
 				} else {
 					j.Message = answer
 				}
@@ -469,6 +469,7 @@ func MsgParser(cfg *config.MyConfig, ctx context.Context, msg string) {
 
 	// Настало время формировать json и засылать его в дальше
 	var message SMsg
+
 	message.From = j.From
 	message.Userid = j.Userid
 	message.Chatid = j.Chatid

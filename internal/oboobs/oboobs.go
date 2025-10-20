@@ -18,6 +18,7 @@ type Oboobs struct {
 	Preview string `json:"preview"`
 }
 
+// APIClient клиент сервиса oboobs.ru.
 func APIClient(cfg *config.MyConfig) (string, error) {
 	var (
 		ctx       = context.Background()
@@ -26,23 +27,15 @@ func APIClient(cfg *config.MyConfig) (string, error) {
 		boobs     []Oboobs
 	)
 
-	err := requests.
-		URL(url).
-		UserAgent(userAgent).
-		ToJSON(&boobs).
-		Fetch(ctx)
-
-	if err != nil {
+	if err := requests.URL(url).UserAgent(userAgent).ToJSON(&boobs).Fetch(ctx); err != nil {
 		return "", fmt.Errorf("unable to GET %s: %w", url, err)
 	}
 
 	if len(boobs) == 0 {
-		err = fmt.Errorf("empty json array returned from %s", url)
-
-		return "", err
+		return "", fmt.Errorf("empty json array returned from %s", url)
 	}
 
-	answer := fmt.Sprintf("https://media.oboobs.ru/%s", boobs[0].Preview)
+	answer := "https://media.oboobs.ru/%s" + boobs[0].Preview
 
 	return answer, nil
 }

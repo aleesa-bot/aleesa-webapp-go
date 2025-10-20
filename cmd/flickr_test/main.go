@@ -11,16 +11,16 @@ func main() {
 	if err := webapp.ReadConfig(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
-	} else {
-		result, err := flickr.SearchByTags(webapp.Config, []string{"snail", "slug"})
-
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-
-		fmt.Println(result)
 	}
+
+	result, err := flickr.SearchByTags(webapp.Config, []string{"snail", "slug"})
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	fmt.Println(result)
 }
 
 /* vim: set ft=go noet ai ts=4 sw=4 sts=4: */

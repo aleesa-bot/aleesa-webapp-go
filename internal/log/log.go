@@ -29,13 +29,12 @@ func Init(level string, fileDescriptor *os.File) {
 
 	default:
 		loglevel = slog.LevelInfo
-
 	}
 
 	opts := &slog.HandlerOptions{
 		// Use the ReplaceAttr function on the handler options
 		// to be able to replace any single attribute in the log output
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr { //nolint: revive
 			// check that we are handling the time key
 			if a.Key != slog.TimeKey {
 				return a

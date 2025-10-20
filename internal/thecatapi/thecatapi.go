@@ -20,6 +20,7 @@ type TheCatAPIinnerStruct struct {
 // TheCatAPI структурка, описывающая массив, возвращаемый на запрос урла картинки из The Cat API.
 type TheCatAPI []TheCatAPIinnerStruct
 
+// APIClient клиент сервиса thecatapi.com.
 func APIClient(cfg *config.MyConfig) (string, error) {
 	var (
 		ctx       = context.Background()

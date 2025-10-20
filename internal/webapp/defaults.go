@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 )
 
+// DefaultConfigFileLocations выдаёт варианты путей, по которым может находиться конфиг-файл.
 func DefaultConfigFileLocations() ([]string, error) {
 	var locations []string
 
@@ -15,7 +16,7 @@ func DefaultConfigFileLocations() ([]string, error) {
 		return locations, fmt.Errorf("unable to get my executable path: %w", err)
 	}
 
-	configJSONPath := fmt.Sprintf("%s/data/config.json", filepath.Dir(executablePath))
+	configJSONPath := filepath.Dir(executablePath) + "/data/config.json"
 
 	locations = []string{
 		"~/.aleesa-webapp-go.json",

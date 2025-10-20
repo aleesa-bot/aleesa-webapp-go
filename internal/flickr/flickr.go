@@ -2,7 +2,9 @@ package flickr
 
 import (
 	"aleesa-webapp-go/internal/config"
-	"aleesa-webapp-go/internal/pcachedb" //nolint: gosec // Just go fuck yourself if you don't see difference between hashing and cryptography.
+	"aleesa-webapp-go/internal/pcachedb"
+	"errors"
+	"strconv"
 
 	"context"
 	"fmt"
@@ -151,6 +153,7 @@ func SearchByTags(cfg *config.MyConfig, tags []string) (string, error) {
 	// которую он рассчитан. Но нам повезло, что можно просто вытащить подписанный url и заправить его в свой
 	// http-клиент.
 	url := c.GetUrl()
+
 	var response SearchResult
 
 	err := requests.
@@ -160,7 +163,7 @@ func SearchByTags(cfg *config.MyConfig, tags []string) (string, error) {
 		Fetch(ctx)
 
 	if response.Stat == "fail" {
-		return "", fmt.Errorf("search request returns no results and fails")
+		return "", errors.New("search request returns no results and fails")
 	}
 
 	// Ну, вот мы и получили ответ на вопрос - а сколько же у нас результатов поиска всего, по заданному критерию.
@@ -171,7 +174,7 @@ func SearchByTags(cfg *config.MyConfig, tags []string) (string, error) {
 	}
 
 	randomPage := rand.Int64N(response.Photos.Pages)
-	c.Args.Set("page", fmt.Sprintf("%d", randomPage))
+	c.Args.Set("page", strconv.FormatInt(randomPage, 10))
 
 	// Подписываем запрос oauth-говном.
 	c.OAuthSign()
@@ -189,7 +192,7 @@ func SearchByTags(cfg *config.MyConfig, tags []string) (string, error) {
 	}
 
 	if response.Stat == "fail" {
-		return "", fmt.Errorf("search request returns no results and fails")
+		return "", errors.New("search request returns no results and fails")
 	}
 
 	// Частенько выборка не очень уникальна, много дублей. Чтобы почистить выборку, неплохо бы выбирать только те фотки,

@@ -16,8 +16,10 @@ import (
 	"golang.org/x/net/html"
 )
 
+// PsrClient обёртка для клиента сервиса prazdniki-segodnya.ru, работающая с кэшем. Запросы надо делать именно через неё.
 func PsrClient(cfg *config.MyConfig) (string, error) {
 	tsNow := time.Now()
+
 	// Вычислим expiration time для MSK+0 в формате unix timestamp
 	loc, _ := time.LoadLocation("Europe/Moscow")
 	year, month, day := tsNow.In(loc).Date()
@@ -91,6 +93,7 @@ func PsrClient(cfg *config.MyConfig) (string, error) {
 	return pcachedb.GetValue(cfg, "cache", "prazdnikisegodhyaru_value"), nil
 }
 
+// PsrAPIClient клиент сервиса prazdniki-segodnya.ru.
 func PsrAPIClient(cfg *config.MyConfig) (string, error) {
 	var (
 		ctx      = context.Background()
@@ -102,15 +105,8 @@ func PsrAPIClient(cfg *config.MyConfig) (string, error) {
 	_, _, day := time.Now().Date()
 	userAgent := cfg.UserAgents[day]
 
-	err := requests.
-		URL(url).
-		UserAgent(userAgent).
-		Header("User-Agent", "ru-RU").
-		Header("Accept-Charset", "utf-8").
-		ToString(&respBody).
-		Fetch(ctx)
-
-	if err != nil {
+	if err := requests.URL(url).UserAgent(userAgent).Header("User-Agent", "ru-RU").
+		Header("Accept-Charset", "utf-8").ToString(&respBody).Fetch(ctx); err != nil {
 		return "", fmt.Errorf("unable to GET %s: %w", url, err)
 	}
 
@@ -152,17 +148,16 @@ func PsrAPIClient(cfg *config.MyConfig) (string, error) {
 	}
 
 	if len(holidays) == 0 {
-		err = errors.New("unable to parse response from prazdniki-segodnya.ru: no holidays found")
-
-		return "", err
+		return "", errors.New("unable to parse response from prazdniki-segodnya.ru: no holidays found")
 	}
 
 	return "* " + strings.Join(holidays, "\n* "), nil
 }
 
+// UpdatePsrCache сохраняет в кэш ответ от сервиса prazdniki-segodnya.ru и временной штамп.
 func UpdatePsrCache(cfg *config.MyConfig, eTime int64, value string) error {
 	key := "prazdnikisegodhyaru_timestamp"
-	timestamp := fmt.Sprintf("%d", eTime)
+	timestamp := strconv.FormatInt(eTime, 10)
 
 	if err := pcachedb.SaveKeyWithValue(cfg, "cache", key, timestamp); err != nil {
 		return fmt.Errorf("PSR-Cache: unable to save timestamp to cache: %w", err)

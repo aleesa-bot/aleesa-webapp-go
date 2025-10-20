@@ -16,6 +16,7 @@ type RandomFox struct {
 	Link  string `json:"link"`
 }
 
+// APIClient клиент сервиса randomfox.ca.
 func APIClient(cfg *config.MyConfig) (string, error) {
 	var (
 		ctx       = context.Background()

@@ -3,6 +3,7 @@ package xkcdru
 import (
 	"aleesa-webapp-go/internal/config"
 	"aleesa-webapp-go/internal/log"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand/v2"
@@ -10,6 +11,7 @@ import (
 	"time"
 )
 
+// APIClient клиент сервиса xkcd.ru.
 func APIClient(cfg *config.MyConfig) (string, error) {
 	var (
 		err error
@@ -32,6 +34,7 @@ func APIClient(cfg *config.MyConfig) (string, error) {
 	req.Header.Set("User-Agent", cfg.UserAgents[rand.IntN(len(cfg.UserAgents))])
 
 	var resp *http.Response
+
 	resp, err = c.Do(req) //nolint: bodyclose // Посмотри ниже, блять, тело запроса закрывается.
 
 	if err != nil {
@@ -40,9 +43,7 @@ func APIClient(cfg *config.MyConfig) (string, error) {
 
 	// Типа, надо закрывать Body в любом случае, как рекомендуют в документации https://pkg.go.dev/net/http .
 	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-
-		if err != nil {
+		if err := Body.Close(); err != nil {
 			log.Errorf("Unable to close response body for request to %s: %s", url, err)
 		}
 	}(resp.Body)
@@ -52,7 +53,7 @@ func APIClient(cfg *config.MyConfig) (string, error) {
 		location := resp.Header.Get("Location")
 
 		if len(location) <= 3 {
-			err = fmt.Errorf("location header too short")
+			err = errors.New("location header too short")
 
 			return "", err
 		}

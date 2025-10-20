@@ -3,6 +3,7 @@ package bunicomic
 import (
 	"aleesa-webapp-go/internal/config"
 	"context"
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"regexp"
@@ -12,6 +13,7 @@ import (
 	"golang.org/x/net/html"
 )
 
+// APIClient клиент сервиса bunicomic.com.
 func APIClient(cfg *config.MyConfig) (string, error) {
 	var (
 		ctx       = context.Background()
@@ -76,7 +78,7 @@ func APIClient(cfg *config.MyConfig) (string, error) {
 	}
 
 	// Картинки не выпарсилось, это точно ошибка.
-	err = fmt.Errorf("unable to get link to buni comic strip image")
+	err = errors.New("unable to get link to buni comic strip image")
 
 	return "", err
 }

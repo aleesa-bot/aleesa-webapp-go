@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"strings"
@@ -19,6 +20,7 @@ type MonkeyUsers []struct {
 	URL   string `json:"url"`
 }
 
+// APIClient клиент сервиса monkeyuser.com.
 func APIClient(cfg *config.MyConfig) (string, error) {
 	var (
 		ctx       = context.Background()
@@ -27,7 +29,7 @@ func APIClient(cfg *config.MyConfig) (string, error) {
 		body      string
 		userAgent = cfg.UserAgents[rand.IntN(len(cfg.UserAgents))]
 		baseURL   = "https://www.monkeyuser.com"
-		indexURL  = fmt.Sprintf("%s/index.json", baseURL)
+		indexURL  = baseURL + "/index.json"
 	)
 
 	err := requests.
@@ -87,7 +89,7 @@ func APIClient(cfg *config.MyConfig) (string, error) {
 
 	link = func(n *html.Node) {
 		if n.Type == html.ElementNode && n.Data == "img" {
-			for _, a_href := range n.Attr { //nolint: revive,stylecheck
+			for _, a_href := range n.Attr { //nolint: revive
 				// Если у нас class == "lazyload small-image", то после него ключ data-src должен содержать
 				// искомый relative url
 				if a_href.Key == "class" && a_href.Val == "logo" {
@@ -116,7 +118,7 @@ func APIClient(cfg *config.MyConfig) (string, error) {
 		return fmt.Sprintf("%s%s", baseURL, hyperlink), nil
 	}
 
-	err = fmt.Errorf("no links found on monkeyusers.com")
+	err = errors.New("no links found on monkeyusers.com")
 
 	return "", err
 }

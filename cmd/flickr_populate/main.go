@@ -11,11 +11,11 @@ func main() {
 	if err := webapp.ReadConfig(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
-	} else {
-		if err := flickr.Populate(webapp.Config); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
+	}
+
+	if err := flickr.Populate(webapp.Config); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }
 

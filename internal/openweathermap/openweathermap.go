@@ -228,17 +228,17 @@ func OwmAPIClient(cfg *config.MyConfig, item OwmItem) (string, error) {
 
 // UpdateOwmCache обновляет кэш.
 func UpdateOwmCache(cfg *config.MyConfig, tsNowUnix int64, entry string, value string) error {
-	key := fmt.Sprintf("%s+timestamp", entry)
+	key := entry + "+timestamp"
 
 	// "Кэшируем" на 3 часа.
 	ts := tsNowUnix + int64((3 * time.Hour).Seconds())
-	timestamp := fmt.Sprintf("%d", ts)
+	timestamp := strconv.FormatInt(ts, 10)
 
 	if err := pcachedb.SaveKeyWithValue(cfg, "cache", key, timestamp); err != nil {
 		return fmt.Errorf("OWM-Cache: unable to save timestamp to cache: %w", err)
 	}
 
-	key = fmt.Sprintf("%s+value", entry)
+	key = entry + "+value"
 
 	if err := pcachedb.SaveKeyWithValue(cfg, "cache", key, value); err != nil {
 		return fmt.Errorf("OWM-Cache: unable to save answer to cache: %w", err)
@@ -358,8 +358,7 @@ func QueryOwmCache(cfg *config.MyConfig, item OwmItem) (string, error) {
 	return answer, err
 }
 
-// Записывает в кэш, кто каким городом интересовался в последний раз, когда спрашивал о погоде.
-// STUB
+// UpdateOwmUserCache записывает в кэш, кто каким городом интересовался в последний раз, когда спрашивал о погоде.
 func UpdateOwmUserCache(cfg *config.MyConfig, chatid string, entry string, value string) error {
 	var err error
 

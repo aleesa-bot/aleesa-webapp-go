@@ -18,6 +18,7 @@ type Obutts struct {
 	Preview string `json:"preview"`
 }
 
+// APIClient клиент сервиса obutts.ru.
 func APIClient(cfg *config.MyConfig) (string, error) {
 	var (
 		ctx       = context.Background()
@@ -42,7 +43,7 @@ func APIClient(cfg *config.MyConfig) (string, error) {
 		return "", err
 	}
 
-	answer := fmt.Sprintf("http://media.obutts.ru/%s", butts[0].Preview)
+	answer := "http://media.obutts.ru/" + butts[0].Preview
 
 	return answer, nil
 }

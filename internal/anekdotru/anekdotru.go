@@ -13,6 +13,7 @@ import (
 	"github.com/carlmjohnson/requests"
 )
 
+// APIClient клиент сервиса anekdot.ru.
 func APIClient(cfg *config.MyConfig) (string, error) {
 	var (
 		ctx       = context.Background()

@@ -4,3 +4,4 @@
 /flickr_init
 /flickr_populate
 /flickr_test
+/.golangci.bck.yml

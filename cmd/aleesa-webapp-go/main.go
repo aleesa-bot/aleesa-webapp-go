@@ -1,32 +1,16 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"aleesa-webapp-go/internal/config"
 	"aleesa-webapp-go/internal/log"
 	"aleesa-webapp-go/internal/webapp"
 
 	"github.com/go-redis/redis/v8"
-)
-
-var (
-	// ctx контекст редиски.
-	Ctx = context.Background()
-
-	// Subscriber объектик сабскрайбера редиски.
-	Subscriber *redis.PubSub
-
-	// Shutdown ставится в true, если мы получили сигнал на выключение.
-	Shutdown = false
-
-	// SigChan канал, в который приходят уведомления для хэндлера сигналов от траппера сигналов.
-	SigChan = make(chan os.Signal, 1)
 )
 
 // Основная функция программы, не добавить и не убавить.
@@ -57,73 +41,29 @@ func main() {
 	// Иницализируем клиента Редиски.
 	webapp.Config.RedisClient = redis.NewClient(&redis.Options{
 		Addr: fmt.Sprintf("%s:%d", webapp.Config.Server, webapp.Config.Port),
-	}).WithContext(Ctx).WithTimeout(time.Duration(webapp.Config.Timeout) * time.Second)
+	}).WithContext(webapp.Ctx).WithTimeout(time.Duration(webapp.Config.Timeout) * time.Second)
 
 	// Обозначим, что хотим после соединения подписаться на события из канала config.Channel.
-	Subscriber = webapp.Config.RedisClient.Subscribe(Ctx, webapp.Config.Channel)
+	webapp.Subscriber = webapp.Config.RedisClient.Subscribe(webapp.Ctx, webapp.Config.Channel)
 
 	// Самое время поставить трапы на сигналы.
-	signal.Notify(SigChan,
+	signal.Notify(webapp.SigChan,
 		syscall.SIGINT,
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 
 	// Запустим обработчик сигналов.
-	go SigHandler(webapp.Config)
+	go webapp.SigHandler(webapp.Config)
 
 	// Начнём выгребать события из редиски (длина конвеера/буфера канала по-умолчанию - 100 сообщений).
-	ch := Subscriber.Channel()
+	ch := webapp.Subscriber.Channel()
 
 	log.Info("Service started.")
 
 	for msg := range ch {
-		if !Shutdown {
-			webapp.MsgParser(webapp.Config, Ctx, msg.Payload)
+		if !webapp.Shutdown {
+			webapp.MsgParser(webapp.Config, webapp.Ctx, msg.Payload)
 		}
-	}
-}
-
-// SigHandler хэндлер сигналов закрывает все бд и сваливает из приложения.
-func SigHandler(cfg *config.MyConfig) {
-	// TODO: утащить отсюда в модули.
-
-	var err error
-
-	for {
-		var s = <-SigChan
-		switch s {
-		case syscall.SIGINT:
-			log.Info("Got SIGINT, quitting")
-		case syscall.SIGTERM:
-			log.Info("Got SIGTERM, quitting")
-		case syscall.SIGQUIT:
-			log.Info("Got SIGQUIT, quitting")
-
-		// Заходим на новую итерацию, если у нас "неинтересный" сигнал
-		default:
-			continue
-		}
-
-		Shutdown = true
-
-		// Отпишемся от всех каналов и закроем коннект к редиске
-		if err = Subscriber.Unsubscribe(Ctx); err != nil {
-			log.Errorf("Unable to unsubscribe from redis channels cleanly: %s", err)
-		}
-
-		if err = Subscriber.Close(); err != nil {
-			log.Errorf("Unable to close redis connection cleanly: %s", err)
-		}
-
-		if len(cfg.PcacheDB) > 0 {
-			log.Debug("Closing persistent cache db")
-
-			for _, db := range cfg.PcacheDB {
-				_ = db.Close()
-			}
-		}
-
-		os.Exit(0)
 	}
 }
 

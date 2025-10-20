@@ -4,6 +4,7 @@ import (
 	"aleesa-webapp-go/internal/config"
 	"aleesa-webapp-go/internal/log"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"unsafe"
@@ -131,7 +132,7 @@ func ReadConfig() error {
 		// sampleConfig.OpenWeatherMap.Country is false by default
 
 		// Теперь надо бы попробовать загрузить список User Agent-ов, с которыми ходить в разные апишки.
-		uaFile := fmt.Sprintf("%s/useragents.txt", sampleConfig.DataDir)
+		uaFile := sampleConfig.DataDir + "/useragents.txt"
 		uaList, err := ReadLines(uaFile)
 
 		if err != nil {
@@ -149,7 +150,7 @@ func ReadConfig() error {
 		return nil
 	}
 
-	return fmt.Errorf("config was not loaded! Refusing to start")
+	return errors.New("config was not loaded! Refusing to start")
 }
 
 /* vim: set ft=go noet ai ts=4 sw=4 sts=4: */

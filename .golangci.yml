@@ -1,50 +1,35 @@
+version: "2"
 run:
-  tests: false
-  skip-dirs:
-    - data
-    - vendor
+  go: "1.22"
   modules-download-mode: readonly
+  tests: false
   allow-parallel-runners: true
-  go: '1.22'
-output:
-  sort-results: true
-linters-settings:
-  gosec:
-    excludes:
-      # Оно не используется для повышения безопасности или каких-то таких секъюрных вещей, оно используется для выборки
-      # произвольного элемента из массива, так что ИДИ НАХУЙ с этой проверкой и не еби мозги липовой безопасностью.
-      - G404 # Insecure random number source (rand)
-      # Мне не нужны шашечки, мне ехать надо.
-      - G402 # TLS InsecureSkipVerify set true
 linters:
-  disable-all: true
+  default: none
   enable:
-    - errcheck
-    - gosimple
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
     - asasalint
     - asciicheck
     - bodyclose
     - containedctx
-    - contextcheck
+    - copyloopvar
     - decorder
     - durationcheck
+    - errcheck
     - errchkjson
     - errorlint
     - exhaustive
-    - exportloopref
     - ginkgolinter
     - gocheckcompilerdirectives
     - gocritic
     - godot
-    - gofmt
-    - goimports
+    - goheader
     - gosec
+    - govet
     - grouper
+    - iface
     - importas
+    - inamedparam
+    - ineffassign
     - ireturn
     - makezero
     - nakedret
@@ -54,13 +39,43 @@ linters:
     - noctx
     - nolintlint
     - nonamedreturns
+    - perfsprint
     - predeclared
     - promlinter
     - reassign
     - revive
     - rowserrcheck
-    - stylecheck
+    - sloglint
+    - staticcheck
     - unconvert
+    - unparam
+    - unused
     - wastedassign
     - whitespace
-    - wsl
+    - wsl_v5
+  settings:
+    gosec:
+      excludes:
+        - G404
+        - G402
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
